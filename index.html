@@ -50,9 +50,13 @@ tailwind.config = {
   #sync-indicator { transition: opacity .3s; }
   #sync-indicator.syncing { opacity: 1; }
   #sync-indicator.idle { opacity: 0; }
+  #db-banner { display:none; }
 </style>
 </head>
 <body class="min-h-screen">
+
+<!-- DB status banner -->
+<div id="db-banner" style="position:fixed;top:0;left:0;right:0;z-index:100;padding:8px 16px;text-align:center;font-size:12px;font-weight:500;"></div>
 
 <!-- Top Bar -->
 <header class="fixed top-0 left-0 right-0 z-40 border-b border-dark-600 bg-dark-900/95 backdrop-blur-sm" style="background:#0a0f0d;border-bottom:1px solid #1e2d23;">
@@ -457,9 +461,30 @@ function setSyncing(active) {
   if (el) el.className = active ? 'flex items-center gap-1.5 syncing' : 'flex items-center gap-1.5 idle';
 }
 
+function showBanner(msg, type) {
+  const b = document.getElementById('db-banner');
+  if (!b) return;
+  b.style.display = 'block';
+  if (type === 'error') {
+    b.style.background = '#2d1515'; b.style.color = '#ef4444'; b.style.borderBottom = '1px solid #7f1d1d';
+    b.textContent = '⚠️ ' + msg;
+  } else if (type === 'ok') {
+    b.style.background = '#0f2d1a'; b.style.color = '#34d399'; b.style.borderBottom = '1px solid #065f46';
+    b.textContent = '● ' + msg;
+    setTimeout(() => { b.style.display = 'none'; }, 3000);
+  }
+  // shift header down so banner doesn't overlap
+  document.querySelector('header').style.top = '34px';
+  document.querySelector('aside').style.top = 'calc(3.5rem + 34px)';
+}
+
 async function loadTaskState() {
   const { data, error } = await db.from('task_progress').select('task_id, completed');
-  if (error) { console.error('Supabase load error:', error); return; }
+  if (error) {
+    console.error('Supabase load error:', error);
+    showBanner('Cannot reach database. Did you run the SQL setup in Supabase? (check console for details)', 'error');
+    return;
+  }
   taskState = {};
   (data || []).forEach(row => { taskState[row.task_id] = row.completed; });
 }
@@ -470,29 +495,42 @@ async function saveTaskState(taskId, completed) {
     { task_id: taskId, completed, updated_at: new Date().toISOString() },
     { onConflict: 'task_id' }
   );
-  if (error) console.error('Supabase save error:', error);
+  if (error) {
+    console.error('Supabase save error:', error);
+    showBanner('Save failed: ' + error.message, 'error');
+  }
   setSyncing(false);
 }
 
 function subscribeToChanges() {
-  db.channel('task_progress_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'task_progress' }, payload => {
-      const { task_id, completed } = payload.new || {};
-      if (!task_id) return;
-      taskState[task_id] = completed;
-      // Update checkbox and label without full re-render
-      const checkbox = document.getElementById(task_id);
-      if (checkbox && checkbox.checked !== completed) {
-        checkbox.checked = completed;
-        const label = document.querySelector(`label[for="${task_id}"]`);
-        if (label) {
-          label.style.textDecoration = completed ? 'line-through' : 'none';
-          label.style.color = completed ? '#4b5563' : '#d1d5db';
+  const channel = db.channel('task_progress_realtime')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'task_progress' },
+      payload => {
+        const row = payload.new || payload.old;
+        if (!row || !row.task_id) return;
+        const { task_id, completed } = row;
+        taskState[task_id] = completed;
+        const checkbox = document.getElementById(task_id);
+        if (checkbox && checkbox.checked !== completed) {
+          checkbox.checked = completed;
+          const label = document.querySelector(`label[for="${task_id}"]`);
+          if (label) {
+            label.style.textDecoration = completed ? 'line-through' : 'none';
+            label.style.color = completed ? '#4b5563' : '#d1d5db';
+          }
         }
+        updateProgress();
       }
-      updateProgress();
-    })
-    .subscribe();
+    )
+    .subscribe(status => {
+      console.log('Realtime status:', status);
+      if (status === 'SUBSCRIBED') {
+        showBanner('Live sync connected — changes appear instantly for all users', 'ok');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        showBanner('Live sync failed (' + status + '). Run the SQL setup in Supabase to enable realtime.', 'error');
+      }
+    });
 }
 
 // ─── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
