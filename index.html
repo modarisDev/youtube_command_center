@@ -60,6 +60,8 @@ tailwind.config = {
   [dir="rtl"] .lang-opt { text-align:right; }
   body.ar { font-family: 'Segoe UI', 'Arial', system-ui, sans-serif; }
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .niche-tab { transition: all .15s; cursor: pointer; }
+  .niche-tab:hover { opacity: .85; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -114,6 +116,19 @@ tailwind.config = {
   <!-- Sidebar -->
   <aside id="sidebar" class="flex-col w-56 min-h-screen border-r fixed top-14 bottom-0 left-0 overflow-y-auto hidden md:flex" style="background:#0a0f0d;border-right:1px solid #1e2d23;z-index:30;">
     <nav class="p-3 space-y-1 flex-1">
+      <p class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">NICHE TRACK</p>
+      <div class="space-y-1 mb-2" id="niche-tabs">
+        <button onclick="switchNiche('ce')" id="tab-ce" class="niche-tab w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left" style="background:#0d2535;color:#06b6d4;border:1px solid #0e4a6e;">
+          <i data-lucide="credit-card" style="width:13px;height:13px;flex-shrink:0;"></i>Credit Engineering
+        </button>
+        <button onclick="switchNiche('ms')" id="tab-ms" class="niche-tab w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left" style="background:#0f1812;color:#6b7280;border:1px solid #1e2d23;">
+          <i data-lucide="cpu" style="width:13px;height:13px;flex-shrink:0;"></i>Micro-SaaS Finance
+        </button>
+        <button onclick="switchNiche('dp')" id="tab-dp" class="niche-tab w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left" style="background:#0f1812;color:#6b7280;border:1px solid #1e2d23;">
+          <i data-lucide="brain" style="width:13px;height:13px;flex-shrink:0;"></i>Debt Psychology
+        </button>
+      </div>
+      <div class="border-t my-2" style="border-color:#1e2d23;"></div>
       <p id="lbl-phases" class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">PHASES</p>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm active" onclick="showSection('setup',this);return false;">
         <i data-lucide="settings" style="width:15px;height:15px"></i> <span class="nav-setup">Phase 1 · Setup</span>
@@ -149,6 +164,7 @@ tailwind.config = {
 
     <!-- SECTION: Setup -->
     <div id="section-setup" class="section-content active">
+      <div id="niche-header-setup"></div>
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-setup">Phase 1</span></div>
         <h1 class="text-xl font-semibold" id="title-setup" style="color:#e2e8f0;">Channel Setup & Branding</h1>
@@ -163,11 +179,13 @@ tailwind.config = {
         </div>
       </div>
       <div class="space-y-2" id="tasks-setup"></div>
+      <div id="protip-setup"></div>
       <div class="mt-5 rounded-xl p-4" id="tips-setup-box" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
     <!-- SECTION: Tech Stack -->
     <div id="section-tech" class="section-content">
+      <div id="niche-header-tech"></div>
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-tech">Phase 2</span></div>
         <h1 class="text-xl font-semibold" id="title-tech" style="color:#e2e8f0;">Tech Stack — 2026 AI Production Suite</h1>
@@ -181,13 +199,15 @@ tailwind.config = {
           <div class="progress-fill h-1.5 rounded-full" id="bar-tech" style="width:0%"></div>
         </div>
       </div>
-      <div class="space-y-2 mb-6" id="tasks-tech"></div>
-      <h2 class="text-sm font-semibold mb-3" id="lbl-resource-hub" style="color:#e2e8f0;">Resource Hub — Recommended Tools</h2>
+      <div class="space-y-2 mb-4" id="tasks-tech"></div>
+      <div id="protip-tech"></div>
+      <h2 class="text-sm font-semibold mb-3 mt-5" id="lbl-resource-hub" style="color:#e2e8f0;">Resource Hub — Recommended Tools</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="tool-cards-container"></div>
     </div>
 
     <!-- SECTION: Growth -->
     <div id="section-growth" class="section-content">
+      <div id="niche-header-growth"></div>
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-growth">Phase 3</span></div>
         <h1 class="text-xl font-semibold" id="title-growth" style="color:#e2e8f0;">Growth Strategy — 0 to 100K Subscribers</h1>
@@ -201,12 +221,14 @@ tailwind.config = {
           <div class="progress-fill h-1.5 rounded-full" id="bar-growth" style="width:0%"></div>
         </div>
       </div>
-      <div class="space-y-2 mb-5" id="tasks-growth"></div>
+      <div class="space-y-2 mb-4" id="tasks-growth"></div>
+      <div id="protip-growth"></div>
       <div id="retention-box" class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
     <!-- SECTION: Scaling -->
     <div id="section-scale" class="section-content">
+      <div id="niche-header-scale"></div>
       <div class="mb-6">
         <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-scale">Phase 4</span></div>
         <h1 class="text-xl font-semibold" id="title-scale" style="color:#e2e8f0;">Scaling Operations — 100K to 1M</h1>
@@ -220,7 +242,8 @@ tailwind.config = {
           <div class="progress-fill h-1.5 rounded-full" id="bar-scale" style="width:0%"></div>
         </div>
       </div>
-      <div class="space-y-2 mb-5" id="tasks-scale"></div>
+      <div class="space-y-2 mb-4" id="tasks-scale"></div>
+      <div id="protip-scale"></div>
       <div id="sop-box" class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
@@ -271,6 +294,34 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let taskState = {};
 let lang = localStorage.getItem('lang') || 'en';
+let currentNiche = localStorage.getItem('niche') || 'ce';
+
+const NICHE_META = {
+  ce: { name:'Credit Engineering', icon:'credit-card', accent:'#06b6d4', cpm:'$35–$65', tagline:'Turn FICO scores into recurring affiliate revenue', phases:{ setup:'Market Entry', tech:'Authority Building', growth:'Scaling Sprint', scale:'Full Monetization' } },
+  ms: { name:'Micro-SaaS Finance', icon:'cpu', accent:'#10b981', cpm:'$40–$80', tagline:'Unit economics content for SaaS founders & CFOs', phases:{ setup:'Market Entry', tech:'Authority Building', growth:'Scaling Sprint', scale:'Full Monetization' } },
+  dp: { name:'Debt Psychology', icon:'brain', accent:'#f59e0b', cpm:'$20–$45', tagline:'Behavioral triggers driving debt payoff decisions', phases:{ setup:'Market Entry', tech:'Authority Building', growth:'Scaling Sprint', scale:'Full Monetization' } }
+};
+
+const PRO_TIPS = {
+  ce: {
+    setup:  "2026 US hook: 'Your credit score dropped 40 points and you don't know why.' FICO 10T penalizes revolving utilization differently than FICO 8 — this confusion is your content goldmine. Register on Bankrate + CardRatings before your first video goes live.",
+    tech:   "Bankrate pays $100–$200 per credit card approval. CardRatings pays per application. Stack both networks and A/B test which card recommendation converts highest — track with UTM params per video.",
+    growth: "The credit score 'reveal' format — showing a score change on screen — drives 2x average retention vs. talking-head style. Build your editing SOP around this reveal moment. Aim for the reveal at minute 4–5 to lock mid-roll ad placement.",
+    scale:  "At 100K subs, approach Experian or Credit Karma directly for a platform partnership. Their affiliate rates for direct partners are 3–5x higher than public network rates. Cite your viewer job-title demographics from YouTube Studio."
+  },
+  ms: {
+    setup:  "SaaS finance audience pays $40–$80 CPM because they are decision-makers with budget. Your hook: 'You're measuring the wrong metrics and it's killing your valuation.' Founders bookmark this type of content and share it in Slack groups.",
+    tech:   "QuickBooks affiliate pays $40–$150/subscription, Gusto $100/activated account, Brex per funded account. Stack all three in one 'SaaS Finance Stack' video. One 50K-view video can generate $3K–$8K in a single month.",
+    growth: "SaaS benchmark videos (ARR multiples, NRR by category) are evergreen and circulate in founder Slack groups. One share in a 500-person founder Slack = 500–2,000 high-intent views with above-average affiliate conversion.",
+    scale:  "At $10K/mo revenue, position for a direct QuickBooks or Gusto integration sponsorship. Your audience is their exact ICP. Come with CPM data, average viewer ARR, and job-title breakdown from YouTube Analytics."
+  },
+  dp: {
+    setup:  "78% of Americans feel shame about debt. Your content is permission-giving, not advice-giving. Hook: 'You are not bad with money — your brain is neurologically wired against paying off debt.' This framing unlocks emotional engagement and share velocity.",
+    tech:   "SoFi pays $100–$300 per funded personal loan. National Debt Relief pays $30–$60 per qualified lead. One debt consolidation video can generate $2,000–$8,000/mo in affiliate revenue at 50K monthly views.",
+    growth: "Identity-shift content ('I am becoming debt-free, not just paying off debt') drives the highest share rate in this niche. Build a series around this transformation arc — each video should advance the viewer's self-concept.",
+    scale:  "The debt payoff community is the most loyal audience in personal finance. At 200K subs, a $9/mo accountability Discord with 1% conversion rate = $18K/mo recurring — before any affiliate or sponsorship revenue."
+  }
+};
 
 // ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
 const T = {
@@ -444,8 +495,159 @@ const T = {
   }
 };
 
-// ─── TASK DATA ────────────────────────────────────────────────────────────────
+// ─── TASK DATA (niche-keyed) ──────────────────────────────────────────────────
 const TASKS = {
+  ce: {
+    setup: [
+      { id:'ce_s1',  text:'Register for Bankrate Affiliate Network (credit card offers, $100–$200/approval)' },
+      { id:'ce_s2',  text:'Apply to CardRatings.com publisher program (separate payouts from Bankrate)' },
+      { id:'ce_s3',  text:'Create LendingTree publisher account for personal loan referrals ($200–$350/lead)' },
+      { id:'ce_s4',  text:'Research FICO 10T vs FICO 8 differences — this confusion drives search volume in 2026' },
+      { id:'ce_s5',  text:'Identify 5 "credit trauma" trigger phrases your US audience uses on Reddit/TikTok' },
+      { id:'ce_s6',  text:'Script Video 1: "FICO Algorithm Changed in 2026 — Here\'s Your New Score"' },
+      { id:'ce_s7',  text:'Set up channel brand: "Credit Blueprint" or "Score Architect" — keyword + authority' },
+      { id:'ce_s8',  text:'Create thumbnail template: credit score number as the hero element' },
+      { id:'ce_s9',  text:'Set up ConvertKit email list + "Credit Repair Roadmap" PDF as lead magnet' },
+      { id:'ce_s10', text:'Write YouTube channel description targeting "credit score 2026" and "fix credit fast"' }
+    ],
+    tech: [
+      { id:'ce_t1',  text:'Set up ElevenLabs with calm/authoritative voice clone for credit explainer content' },
+      { id:'ce_t2',  text:'Use Claude to script "5 Credit Myths Banks Don\'t Want You to Know" (15 min)' },
+      { id:'ce_t3',  text:'Set up Julius AI to visualize FICO score distribution data and utilization charts' },
+      { id:'ce_t4',  text:'Configure VidIQ keyword alerts: "credit score 2026", "credit repair fast", "FICO 10T"' },
+      { id:'ce_t5',  text:'Build affiliate link dashboard: Bankrate + CardRatings + LendingTree — track EPC per video' },
+      { id:'ce_t6',  text:'Create animated FICO score scale template in Flourish (score range visualization)' },
+      { id:'ce_t7',  text:'Set up OpusClip to auto-cut credit score reveal moments into Shorts' },
+      { id:'ce_t8',  text:'Script "Authorized User Hack" video — highest search volume topic in CE niche' },
+      { id:'ce_t9',  text:'Configure Perplexity for daily CFPB regulation and credit law news alerts' },
+      { id:'ce_t10', text:'Set up Notion CRM to track affiliate application status, approval rates, and payouts' }
+    ],
+    growth: [
+      { id:'ce_g1',  text:'Publish "Credit Score Tier List 2026" — outlier-bait title with bookmark intent' },
+      { id:'ce_g2',  text:'Create 4 Shorts per video focusing on the score-reveal moment' },
+      { id:'ce_g3',  text:'Post "What Happens to Your Credit If You..." series (10-video campaign)' },
+      { id:'ce_g4',  text:'Reach 30-video milestone — algorithm trust threshold for consistent impressions' },
+      { id:'ce_g5',  text:'Target "business credit" keywords for +$15 CPM premium over personal credit' },
+      { id:'ce_g6',  text:'Build email list: funnel Shorts viewers via pinned comment → free roadmap PDF' },
+      { id:'ce_g7',  text:'Analyze retention curves — identify and optimize the score-reveal timing moment' },
+      { id:'ce_g8',  text:'Deploy mid-roll ads at score-reveal timestamps for maximum mid-roll RPM' },
+      { id:'ce_g9',  text:'Pitch CardRatings for exclusive rate bump after reaching 100K views/mo' },
+      { id:'ce_g10', text:'A/B test thumbnails: score number vs. emotion reaction — track CTR difference' }
+    ],
+    scale: [
+      { id:'ce_sc1', text:'Launch "Credit Engineering OS" Notion template ($47/unit)' },
+      { id:'ce_sc2', text:'Build Discord "Credit Score Club" with score-tier role badges (650 · 700 · 750+)' },
+      { id:'ce_sc3', text:'Partner with Experian or Credit Karma for direct integration deal (3–5x affiliate rate)' },
+      { id:'ce_sc4', text:'Hire scriptwriter with credit/lending industry background (NMLS knowledge preferred)' },
+      { id:'ce_sc5', text:'Launch Substack: monthly CFPB regulation + credit scoring algorithm breakdown' },
+      { id:'ce_sc6', text:'Create video course: "From 580 to 780 in 6 Months" ($197 price point)' },
+      { id:'ce_sc7', text:'Build SOP: CFPB compliance check required before every video is published' },
+      { id:'ce_sc8', text:'Apply for YouTube BrandConnect for direct credit card issuer partnerships' },
+      { id:'ce_sc9', text:'Automate weekly affiliate EPC report: views per link via Google Sheets + YouTube API' },
+      { id:'ce_sc10',text:'At 1M subs: add licensed credit counselor as co-creator for authority and compliance cover' }
+    ]
+  },
+  ms: {
+    setup: [
+      { id:'ms_s1',  text:'Apply to Intuit Partner Platform for QuickBooks affiliate ($40–$150/subscription)' },
+      { id:'ms_s2',  text:'Register for Gusto affiliate program ($100/activated payroll account)' },
+      { id:'ms_s3',  text:'Research top 10 SaaS finance pain points from r/SaaS, Indie Hackers, and Hacker News' },
+      { id:'ms_s4',  text:'Finalize channel name: "SaaS CFO" or "Founder\'s Finance OS" — B2B authority framing' },
+      { id:'ms_s5',  text:'Script Video 1: "Your SaaS is Profitable — Here\'s Why Your Bank Says Otherwise"' },
+      { id:'ms_s6',  text:'Build brand identity: clean, minimal, dark mode targeting B2B founders 25–40' },
+      { id:'ms_s7',  text:'Create thumbnail template: financial chart + dollar/ARR figure as hero element' },
+      { id:'ms_s8',  text:'Identify 5 "SaaS finance" outlier topics using VidIQ (low competition, high intent)' },
+      { id:'ms_s9',  text:'Set up ConvertKit with MRR Tracker spreadsheet as SaaS founder lead magnet' },
+      { id:'ms_s10', text:'Write YouTube description targeting "SaaS accounting", "MRR", "burn rate" keywords' }
+    ],
+    tech: [
+      { id:'ms_t1',  text:'Configure Claude to script "Unit Economics Explained in 12 Minutes" series' },
+      { id:'ms_t2',  text:'Set up Julius AI for MRR, churn rate, LTV/CAC ratio data visualizations' },
+      { id:'ms_t3',  text:'Use Datawrapper for SaaS benchmark charts (industry medians by ARR tier)' },
+      { id:'ms_t4',  text:'Set up VidIQ for "SaaS accounting", "MRR growth", "burn rate" keyword monitoring' },
+      { id:'ms_t5',  text:'Build affiliate stack: QuickBooks + Stripe + Gusto + Brex + Mercury in one hub' },
+      { id:'ms_t6',  text:'Configure Perplexity for SaaS tax law, R&D credit, and Section 174 updates' },
+      { id:'ms_t7',  text:'Install Descript for text-based editing of dense financial terminology content' },
+      { id:'ms_t8',  text:'Create "SaaS Metrics Dashboard" Notion template as secondary lead magnet ($0 → email)' },
+      { id:'ms_t9',  text:'Set up Frame.io editor review workflow for high-density chart-heavy videos' },
+      { id:'ms_t10', text:'Script "Bootstrapped vs. VC-Backed Finance" comparison — evergreen bookmark content' }
+    ],
+    growth: [
+      { id:'ms_g1',  text:'Publish "SaaS Valuation Multiples 2026" — shared inside founder Slack groups' },
+      { id:'ms_g2',  text:'Create Shorts: "Red Flag on Your P&L That VCs Notice Instantly"' },
+      { id:'ms_g3',  text:'Build "Founder Finance Q&A" series sourced from r/SaaS top questions' },
+      { id:'ms_g4',  text:'Deploy content targeting Series A/B founders (highest monetization intent segment)' },
+      { id:'ms_g5',  text:'Reach 30-video milestone with consistent weekly upload cadence' },
+      { id:'ms_g6',  text:'Post "Tools Every SaaS CFO Uses" tool-stack video (primary affiliate revenue hub)' },
+      { id:'ms_g7',  text:'Partner with SaaS newsletters (Lenny\'s, The Bootstrapper) for cross-promo' },
+      { id:'ms_g8',  text:'Analyze which finance metrics tutorials drive most affiliate link clicks' },
+      { id:'ms_g9',  text:'Optimize titles for "B2B finance" and "SaaS startup" CPM-premium keyword clusters' },
+      { id:'ms_g10', text:'Build funnel: free SaaS P&L template → email list → paid course waitlist' }
+    ],
+    scale: [
+      { id:'ms_sc1', text:'Launch "Founder Finance Masterclass" course ($297 price point)' },
+      { id:'ms_sc2', text:'Build paid community: "SaaS Finance Operators Club" ($29/mo, 100-seat launch)' },
+      { id:'ms_sc3', text:'Hire B2B finance scriptwriter with SaaS startup or CFO background' },
+      { id:'ms_sc4', text:'Launch Substack: weekly SaaS benchmark data + valuation multiple updates' },
+      { id:'ms_sc5', text:'Land QuickBooks/Gusto/Brex brand sponsorship deal ($5K–$20K per integration)' },
+      { id:'ms_sc6', text:'Create compliance SOP: no unlicensed financial advice, all claims sourced to SEC/IRS' },
+      { id:'ms_sc7', text:'Expand to LinkedIn short-form content (CFO/founder audience is native there)' },
+      { id:'ms_sc8', text:'Build affiliate attribution dashboard: all SaaS tool commissions in one Google Sheet' },
+      { id:'ms_sc9', text:'Apply to YC/Techstars community partner program for co-marketing access' },
+      { id:'ms_sc10',text:'Automate monthly P&L report: channel revenue vs. production costs vs. affiliate payouts' }
+    ]
+  },
+  dp: {
+    setup: [
+      { id:'dp_s1',  text:'Apply to SoFi affiliate program ($100–$300 per funded personal loan)' },
+      { id:'dp_s2',  text:'Register for National Debt Relief affiliate ($30–$60/qualified lead)' },
+      { id:'dp_s3',  text:'Research 5 behavioral psychology triggers in debt decisions (sunk cost, shame, avoidance)' },
+      { id:'dp_s4',  text:'Finalize channel name: "Debt Freedom Formula" or "Behavior Finance Lab"' },
+      { id:'dp_s5',  text:'Script Video 1: "Why Smart People Stay in Debt (It\'s Not About Math)"' },
+      { id:'dp_s6',  text:'Build brand: warm accent colors, empathy-forward design — avoid cold/harsh finance aesthetic' },
+      { id:'dp_s7',  text:'Create "Snowball vs Avalanche" infographic template (most-searched debt comparison)' },
+      { id:'dp_s8',  text:'Set up ConvertKit with "Debt Payoff Personality Quiz" as lead magnet' },
+      { id:'dp_s9',  text:'Identify 10 "debt shame" search queries with high emotional intent using VidIQ' },
+      { id:'dp_s10', text:'Write YouTube description targeting "debt payoff motivation" and "get out of debt" keywords' }
+    ],
+    tech: [
+      { id:'dp_t1',  text:'Use Claude to script "Debt Identity Shift" series (identity-based psychology approach)' },
+      { id:'dp_t2',  text:'Set up ElevenLabs with warm, empathetic voice tone (avoid authoritative/cold delivery)' },
+      { id:'dp_t3',  text:'Configure Perplexity for consumer debt statistics and Fed Reserve household debt data' },
+      { id:'dp_t4',  text:'Use Julius AI to visualize average US household debt by category (2026 Fed data)' },
+      { id:'dp_t5',  text:'Create animated "Debt Snowball Progress" chart template in Flourish' },
+      { id:'dp_t6',  text:'Set up VidIQ for "debt payoff", "get out of debt", "debt free journey" monitoring' },
+      { id:'dp_t7',  text:'Configure OpusClip to cut emotional "debt-free milestone reveal" moments into Shorts' },
+      { id:'dp_t8',  text:'Build SoFi + National Debt Relief affiliate tracking sheet (EPC per video)' },
+      { id:'dp_t9',  text:'Script "Debt Shame Spiral Explained" — highest emotional retention potential in niche' },
+      { id:'dp_t10', text:'Install Descript for tightening emotional pacing and removing dead air in voiceovers' }
+    ],
+    growth: [
+      { id:'dp_g1',  text:'Publish "Why 78% of Americans Can\'t Get Out of Debt" — emotional outlier hook' },
+      { id:'dp_g2',  text:'Create "Debt-Free in 18 Months" real-scenario walkthrough case study series' },
+      { id:'dp_g3',  text:'Post 4 Shorts per video focusing on emotional debt revelation moments' },
+      { id:'dp_g4',  text:'Deploy "Debt Personality Types" series — identity-driven, highly shareable format' },
+      { id:'dp_g5',  text:'Reach 30-video milestone with biweekly emotional storytelling cadence' },
+      { id:'dp_g6',  text:'Build email list via 3-part "Debt Freedom Kickstart" email sequence' },
+      { id:'dp_g7',  text:'Target "debt consolidation" and "debt management plan" high-CPM search clusters' },
+      { id:'dp_g8',  text:'Use pinned comments in Shorts to funnel viewers to full debt strategy videos' },
+      { id:'dp_g9',  text:'Run community poll: "What\'s your biggest debt obstacle?" — use results for content calendar' },
+      { id:'dp_g10', text:'Optimize thumbnails: transformation story visuals outperform all other formats in niche' }
+    ],
+    scale: [
+      { id:'dp_sc1', text:'Launch "Debt Freedom Blueprint" course ($127–$197 price point)' },
+      { id:'dp_sc2', text:'Build "Debt Recovery Community" Discord with milestone role rewards (e.g. $10K paid off)' },
+      { id:'dp_sc3', text:'Partner with National Debt Relief for exclusive affiliate rate (direct vs. network rate)' },
+      { id:'dp_sc4', text:'Hire scriptwriter with psychology or behavioral finance background' },
+      { id:'dp_sc5', text:'Launch Substack: monthly consumer debt trends and behavioral psychology breakdowns' },
+      { id:'dp_sc6', text:'Create compliance SOP: no debt-shaming language, no unrealistic payoff timelines in any script' },
+      { id:'dp_sc7', text:'Apply for financial wellness brand partnerships (debt management app sponsorships)' },
+      { id:'dp_sc8', text:'Build referral program: viewers who share earn free course module access' },
+      { id:'dp_sc9', text:'Expand to TikTok Finance with debt transformation story short-form format' },
+      { id:'dp_sc10',text:'At 500K subs: partner with licensed financial therapist as off-camera script consultant' }
+    ]
+  },
+  // Legacy EN tasks kept for reference (no longer used in checklist render)
   en: {
     setup: [
       { id:'s1', text:'Choose channel niche (AI Investing, Debt Architecture, Creator Tax, Senior Longevity, or Fintech Security)', tip:'Higher CPM niches = higher advertiser competition. Debt Architecture offers $20–50 CPM.' },
@@ -787,12 +989,80 @@ function subscribeToChanges() {
     });
 }
 
+// ─── NICHE SWITCHER ───────────────────────────────────────────────────────────
+function switchNiche(niche) {
+  currentNiche = niche;
+  localStorage.setItem('niche', niche);
+  const meta = NICHE_META[niche];
+  // Update tab styles
+  ['ce','ms','dp'].forEach(n => {
+    const tab = document.getElementById('tab-'+n);
+    if (!tab) return;
+    const m = NICHE_META[n];
+    if (n === niche) {
+      tab.style.background = n==='ce'?'#0d2535':n==='ms'?'#0f2d1a':'#2d1f05';
+      tab.style.color = m.accent;
+      tab.style.border = `1px solid ${m.accent}`;
+    } else {
+      tab.style.background = '#0f1812';
+      tab.style.color = '#6b7280';
+      tab.style.border = '1px solid #1e2d23';
+    }
+  });
+  // Update header progress bar color
+  document.querySelectorAll('.progress-fill').forEach(el => {
+    el.style.background = `linear-gradient(90deg,${meta.accent}99,${meta.accent})`;
+  });
+  renderNicheHeaders();
+  renderAll();
+}
+
+function renderNicheHeaders() {
+  const meta = NICHE_META[currentNiche];
+  ['setup','tech','growth','scale'].forEach(phase => {
+    const el = document.getElementById('niche-header-'+phase);
+    if (!el) return;
+    el.innerHTML = `
+      <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background:#0f1812;border:1px solid ${meta.accent}33;">
+        <div style="background:${meta.accent}22;border-radius:8px;padding:7px;flex-shrink:0;">
+          <i data-lucide="${meta.icon}" style="width:16px;height:16px;color:${meta.accent};"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold" style="color:${meta.accent};">${meta.name}</span>
+            <span class="badge" style="background:${meta.accent}22;color:${meta.accent};font-size:10px;padding:2px 7px;border-radius:999px;">CPM ${meta.cpm}</span>
+          </div>
+          <p class="text-xs mt-0.5" style="color:#6b7280;">${meta.tagline}</p>
+        </div>
+      </div>`;
+  });
+}
+
+function renderProTips() {
+  const meta = NICHE_META[currentNiche];
+  const tips = PRO_TIPS[currentNiche];
+  ['setup','tech','growth','scale'].forEach(phase => {
+    const el = document.getElementById('protip-'+phase);
+    if (!el || !tips[phase]) return;
+    el.innerHTML = `
+      <div class="flex items-start gap-2 p-4 rounded-xl mt-4" style="background:${meta.accent}0d;border:1px solid ${meta.accent}33;">
+        <i data-lucide="zap" style="width:14px;height:14px;color:${meta.accent};flex-shrink:0;margin-top:2px;"></i>
+        <div>
+          <p class="text-xs font-semibold mb-1" style="color:${meta.accent};">2026 CMO Pro Tip</p>
+          <p class="text-xs" style="color:#9ca3af;">${tips[phase]}</p>
+        </div>
+      </div>`;
+  });
+}
+
 // ─── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
 function renderTasks(phase, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = '';
-  (TASKS[lang][phase] || []).forEach(task => {
+  const tasks = TASKS[currentNiche] ? (TASKS[currentNiche][phase] || []) : [];
+  const meta = NICHE_META[currentNiche];
+  tasks.forEach(task => {
     const checked = !!taskState[task.id];
     const div = document.createElement('div');
     div.className = 'task-item flex items-start gap-3 p-3 rounded-xl';
@@ -980,8 +1250,8 @@ function updateProgress() {
   const phases = ['setup','tech','growth','scale'];
   let totalDone = 0, totalAll = 0;
   phases.forEach(p => {
-    const tasks = TASKS[lang][p] || [];
-    const done = tasks.filter(t => !!taskState[t.id]).length;
+    const tasks = TASKS[currentNiche] ? (TASKS[currentNiche][p] || []) : [];
+    const done = tasks.filter(tk => !!taskState[tk.id]).length;
     totalDone += done; totalAll += tasks.length;
     const pct = tasks.length > 0 ? Math.round(done/tasks.length*100) : 0;
     const bar = document.getElementById('bar-'+p); if(bar) bar.style.width = pct+'%';
@@ -994,9 +1264,9 @@ function updateProgress() {
 }
 
 async function resetAll() {
-  if (!confirm('Reset ALL progress for everyone? This cannot be undone.')) return;
+  if (!confirm('Reset ALL progress for this niche? This cannot be undone.')) return;
   setSyncing(true);
-  const allIds = Object.values(TASKS.en).flat().map(t => t.id);
+  const allIds = ['ce','ms','dp'].flatMap(n => Object.values(TASKS[n]).flat().map(t => t.id));
   await db.from('task_progress').upsert(
     allIds.map(id => ({ task_id: id, completed: false, updated_at: new Date().toISOString() })),
     { onConflict: 'task_id' }
@@ -1042,6 +1312,8 @@ function setLang(l) {
 
 function renderAll() {
   renderUILabels();
+  renderNicheHeaders();
+  renderProTips();
   renderTasks('setup', 'tasks-setup');
   renderTasks('tech', 'tasks-tech');
   renderTasks('growth', 'tasks-growth');
@@ -1064,10 +1336,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   else {
     document.getElementById('lang-label').textContent = 'ENG';
     document.querySelectorAll('.lang-opt').forEach(btn => btn.classList.toggle('active', btn.textContent === 'ENG'));
+    renderAll();
   }
-  await loadTaskState();
-  renderAll();
-  subscribeToChanges();
+  // Apply saved niche tab styling
+  switchNiche(currentNiche);
+  try {
+    await loadTaskState();
+    renderAll();
+    switchNiche(currentNiche);
+    subscribeToChanges();
+  } catch(e) {
+    console.error('Supabase boot error:', e);
+    showBanner('Database error: ' + e.message, 'error');
+  }
 });
 </script>
 </body>
