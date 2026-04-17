@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Command Center – Faceless Finance</title>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857' },
+        dark: { 900: '#0a0f0d', 800: '#0f1812', 700: '#162018', 600: '#1e2d23', 500: '#253328', 400: '#2f4036' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #0a0f0d; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0f1812; } ::-webkit-scrollbar-thumb { background: #253328; border-radius: 3px; }
+  .sidebar-link { transition: all .2s; }
+  .sidebar-link:hover { background: #1e2d23; color: #10b981; }
+  .sidebar-link.active { background: #162018; color: #10b981; border-left: 3px solid #10b981; }
+  .phase-tab { transition: all .2s; cursor: pointer; }
+  .phase-tab:hover { background: #1e2d23; }
+  .phase-tab.active { background: #1e2d23; border-bottom: 2px solid #10b981; color: #10b981; }
+  .task-item { transition: background .15s; }
+  .task-item:hover { background: #162018; }
+  input[type=checkbox] { accent-color: #10b981; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+  .progress-fill { transition: width .5s cubic-bezier(.4,0,.2,1); background: linear-gradient(90deg, #059669, #34d399); }
+  .tool-card { transition: all .2s; border: 1px solid #253328; }
+  .tool-card:hover { border-color: #10b981; transform: translateY(-2px); background: #162018; }
+  .niche-card { border: 1px solid #253328; transition: all .2s; }
+  .niche-card:hover { border-color: #10b981; }
+  .section-content { display: none; }
+  .section-content.active { display: block; }
+  a { color: #10b981; text-decoration: none; } a:hover { text-decoration: underline; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+  .badge-green { background: #1e2d23; color: #34d399; }
+  .badge-amber { background: #2d2510; color: #fbbf24; }
+  .badge-blue { background: #0f1f2d; color: #60a5fa; }
+  @media (max-width: 768px) { #sidebar { display: none; } #sidebar.open { display: flex; position: fixed; z-index: 50; } }
+
+  /* Sync indicator */
+  #sync-indicator { transition: opacity .3s; }
+  #sync-indicator.syncing { opacity: 1; }
+  #sync-indicator.idle { opacity: 0; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Top Bar -->
+<header class="fixed top-0 left-0 right-0 z-40 border-b border-dark-600 bg-dark-900/95 backdrop-blur-sm" style="background:#0a0f0d;border-bottom:1px solid #1e2d23;">
+  <div class="flex items-center justify-between px-4 h-14">
+    <div class="flex items-center gap-3">
+      <button id="menu-btn" class="md:hidden p-2 rounded-lg hover:bg-dark-600" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <i data-lucide="menu" style="width:18px;height:18px;color:#10b981"></i>
+      </button>
+      <div class="flex items-center gap-2">
+        <div style="background:#10b981;border-radius:8px;padding:5px;display:flex;">
+          <i data-lucide="trending-up" style="width:16px;height:16px;color:#0a0f0d"></i>
+        </div>
+        <span class="font-semibold text-sm" style="color:#e2e8f0;">Finance <span style="color:#10b981;">Command Center</span></span>
+      </div>
+    </div>
+    <!-- Global Progress -->
+    <div class="flex items-center gap-3 flex-1 max-w-md mx-6">
+      <span class="text-xs whitespace-nowrap" style="color:#6b7280;">Overall Progress</span>
+      <div class="flex-1 h-2 rounded-full" style="background:#1e2d23;">
+        <div class="progress-fill h-2 rounded-full" id="global-bar" style="width:0%"></div>
+      </div>
+      <span class="text-xs font-medium whitespace-nowrap" style="color:#10b981;" id="global-pct">0%</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <!-- Live sync dot -->
+      <div id="sync-indicator" class="flex items-center gap-1.5 idle">
+        <div style="width:6px;height:6px;border-radius:50%;background:#10b981;animation:pulse 1s infinite;"></div>
+        <span class="text-xs hidden sm:inline" style="color:#10b981;">syncing…</span>
+      </div>
+      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+      <span class="badge badge-green hidden sm:inline">2026 Edition</span>
+      <span class="text-xs" style="color:#6b7280;" id="tasks-done">0/0 tasks</span>
+    </div>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="flex pt-14 min-h-screen">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="flex-col w-56 min-h-screen border-r fixed top-14 bottom-0 left-0 overflow-y-auto hidden md:flex" style="background:#0a0f0d;border-right:1px solid #1e2d23;z-index:30;">
+    <nav class="p-3 space-y-1 flex-1">
+      <p class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">PHASES</p>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm active" onclick="showSection('setup',this);return false;">
+        <i data-lucide="settings" style="width:15px;height:15px"></i> Phase 1 · Setup
+      </a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('tech',this);return false;">
+        <i data-lucide="cpu" style="width:15px;height:15px"></i> Phase 2 · Tech Stack
+      </a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('growth',this);return false;">
+        <i data-lucide="trending-up" style="width:15px;height:15px"></i> Phase 3 · Growth
+      </a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('scale',this);return false;">
+        <i data-lucide="layers" style="width:15px;height:15px"></i> Phase 4 · Scaling
+      </a>
+      <div class="border-t my-3" style="border-color:#1e2d23;"></div>
+      <p class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">RESOURCES</p>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('niches',this);return false;">
+        <i data-lucide="bar-chart-2" style="width:15px;height:15px"></i> Niche Tracker
+      </a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('monetize',this);return false;">
+        <i data-lucide="dollar-sign" style="width:15px;height:15px"></i> Monetization
+      </a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('risk',this);return false;">
+        <i data-lucide="shield" style="width:15px;height:15px"></i> Risk & Compliance
+      </a>
+    </nav>
+    <div class="p-3 border-t" style="border-color:#1e2d23;">
+      <button onclick="resetAll()" class="w-full text-xs py-2 px-3 rounded-lg text-center" style="background:#1e2d23;color:#ef4444;border:1px solid #2f1515;">
+        Reset All Progress
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 md:ml-56 p-4 md:p-6 max-w-5xl">
+
+    <!-- SECTION: Setup -->
+    <div id="section-setup" class="section-content active">
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="badge badge-blue">Phase 1</span>
+        </div>
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Channel Setup & Branding</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">Strategic branding for the US finance market — trust optimization for an anonymous channel.</p>
+      </div>
+      <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
+          <span>Phase 1 Progress</span><span id="prog-setup">0%</span>
+        </div>
+        <div class="h-1.5 rounded-full" style="background:#1e2d23;">
+          <div class="progress-fill h-1.5 rounded-full" id="bar-setup" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="space-y-2" id="tasks-setup"></div>
+      <div class="mt-5 rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="lightbulb" style="width:14px;height:14px;color:#fbbf24;"></i>
+          <span class="text-xs font-medium" style="color:#fbbf24;">Naming Strategy Tips</span>
+        </div>
+        <ul class="text-sm space-y-1" style="color:#9ca3af;">
+          <li>→ <strong style="color:#e2e8f0;">"Niche + Personality Blend"</strong> e.g. "The Nomad Investor", "Zen Coder Finance"</li>
+          <li>→ <strong style="color:#e2e8f0;">"Authority-First"</strong> e.g. "Debt Architect", "Wealth Framework"</li>
+          <li>→ Integrate keywords like "Finance", "Money", or "Wealth" for discoverability</li>
+          <li>→ Keep it short, punchy, and scalable across social platforms</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION: Tech Stack -->
+    <div id="section-tech" class="section-content">
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 2</span></div>
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Tech Stack — 2026 AI Production Suite</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">AI tools that reduce production cycles by 70%+ — the complete faceless channel toolkit.</p>
+      </div>
+      <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
+          <span>Phase 2 Progress</span><span id="prog-tech">0%</span>
+        </div>
+        <div class="h-1.5 rounded-full" style="background:#1e2d23;">
+          <div class="progress-fill h-1.5 rounded-full" id="bar-tech" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="space-y-2 mb-6" id="tasks-tech"></div>
+      <h2 class="text-sm font-semibold mb-3" style="color:#e2e8f0;">Resource Hub — Recommended Tools</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="tool-cards-container"></div>
+    </div>
+
+    <!-- SECTION: Growth -->
+    <div id="section-growth" class="section-content">
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 3</span></div>
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Growth Strategy — 0 to 100K Subscribers</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">Algorithmic breakthrough via Shorts-to-Longform funnel and SEO-optimized content.</p>
+      </div>
+      <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
+          <span>Phase 3 Progress</span><span id="prog-growth">0%</span>
+        </div>
+        <div class="h-1.5 rounded-full" style="background:#1e2d23;">
+          <div class="progress-fill h-1.5 rounded-full" id="bar-growth" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="space-y-2 mb-5" id="tasks-growth"></div>
+      <div class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="zap" style="width:14px;height:14px;color:#10b981;"></i>
+          <span class="text-sm font-medium" style="color:#10b981;">Retention Mechanics Cheat Sheet</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#34d399;">Visual Motion</p>
+            <p class="text-xs" style="color:#6b7280;">Stock cut or kinetic text every 3–5 seconds. Static screens kill retention.</p>
+          </div>
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#34d399;">Hook Timing</p>
+            <p class="text-xs" style="color:#6b7280;">Core value prop or shocking statement within first 10–15 seconds.</p>
+          </div>
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#34d399;">The 30-Video Rule</p>
+            <p class="text-xs" style="color:#6b7280;">Publish 30+ videos minimum to train the algorithm before expecting traction.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Scaling -->
+    <div id="section-scale" class="section-content">
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 4</span></div>
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Scaling Operations — 100K to 1M Subscribers</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">Transition from creator to media asset operator with SOPs, hiring, and community building.</p>
+      </div>
+      <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
+          <span>Phase 4 Progress</span><span id="prog-scale">0%</span>
+        </div>
+        <div class="h-1.5 rounded-full" style="background:#1e2d23;">
+          <div class="progress-fill h-1.5 rounded-full" id="bar-scale" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="space-y-2 mb-5" id="tasks-scale"></div>
+      <div class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="file-text" style="width:14px;height:14px;color:#10b981;"></i>
+          <span class="text-sm font-medium" style="color:#10b981;">Standard Operating Procedures</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Scriptwriter SOP</p>
+            <p class="text-xs" style="color:#6b7280;">1,500–1,800 words · 48h turnaround · Structure: <span style="color:#34d399;">Hook → Scenario → Insight → CTA</span></p>
+          </div>
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Editor SOP</p>
+            <p class="text-xs" style="color:#6b7280;">Use Frame.io for revisions · Cinematic pacing · Hi-fi sound design · Visual cut every 3–5s</p>
+          </div>
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Batching Schedule</p>
+            <p class="text-xs" style="color:#6b7280;">Scripts, voiceovers, and edits batched 2–4 weeks in advance for consistent uploads.</p>
+          </div>
+          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
+            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Hiring Filter</p>
+            <p class="text-xs" style="color:#6b7280;">Upwork/Fiverr specialists only. Scriptwriters must have finance domain knowledge.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Niche Tracker -->
+    <div id="section-niches" class="section-content">
+      <div class="mb-6">
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">CPM / Niche Tracker</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">5 high-growth US sub-niches from the 2026 report — ranked by RPM potential.</p>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
+          <p class="text-xs mb-1" style="color:#6b7280;">Top RPM</p>
+          <p class="text-xl font-semibold" style="color:#10b981;">$50</p>
+          <p class="text-xs" style="color:#6b7280;">Debt Architecture</p>
+        </div>
+        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
+          <p class="text-xs mb-1" style="color:#6b7280;">Fastest Growth</p>
+          <p class="text-xl font-semibold" style="color:#10b981;">19x</p>
+          <p class="text-xs" style="color:#6b7280;">Senior Longevity</p>
+        </div>
+        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
+          <p class="text-xs mb-1" style="color:#6b7280;">Best Lead Pay</p>
+          <p class="text-xl font-semibold" style="color:#10b981;">$350</p>
+          <p class="text-xs" style="color:#6b7280;">Loan Referrals</p>
+        </div>
+        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
+          <p class="text-xs mb-1" style="color:#6b7280;">Creator Economy</p>
+          <p class="text-xl font-semibold" style="color:#10b981;">$480B</p>
+          <p class="text-xs" style="color:#6b7280;">Projected by 2027</p>
+        </div>
+      </div>
+      <div class="space-y-3" id="niche-cards-container"></div>
+      <h2 class="text-sm font-semibold mt-6 mb-3" style="color:#e2e8f0;">Competitor Benchmark Analysis</h2>
+      <div class="rounded-xl overflow-hidden" style="border:1px solid #1e2d23;">
+        <table class="w-full text-sm">
+          <thead>
+            <tr style="background:#0f1812;border-bottom:1px solid #1e2d23;">
+              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Channel</th>
+              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Strategy</th>
+              <th class="text-left p-3 text-xs font-medium hidden sm:table-cell" style="color:#6b7280;">Hook Style</th>
+              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Est. Monthly Rev</th>
+            </tr>
+          </thead>
+          <tbody id="comp-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION: Monetization -->
+    <div id="section-monetize" class="section-content">
+      <div class="mb-6">
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Monetization Blueprint</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">Stack multiple revenue streams — AdSense alone is fragile.</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5" id="monetize-cards"></div>
+      <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #10b981;">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="calculator" style="width:14px;height:14px;color:#10b981;"></i>
+          <span class="text-sm font-medium" style="color:#10b981;">Revenue Formula & Break-Even</span>
+        </div>
+        <div class="space-y-2 text-sm" style="color:#9ca3af;">
+          <p><span style="color:#e2e8f0;font-family:monospace;">R_T = (V_L × RPM_L) + (V_S × RPM_S) + R_Affiliate + R_Products</span></p>
+          <p>At avg RPM of <strong style="color:#34d399;">$10</strong>, break-even requires <strong style="color:#34d399;">13,000–30,000 views/video</strong></p>
+          <p>A video at <strong style="color:#34d399;">100K views</strong> → net profit of <strong style="color:#34d399;">$700–$870</strong> from AdSense alone</p>
+          <p>Per-video production cost: <strong style="color:#34d399;">$130–$300</strong> (script + voiceover + editing)</p>
+          <p>Profitability target: <strong style="color:#34d399;">within 6 months</strong> with diversified stack</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: Risk -->
+    <div id="section-risk" class="section-content">
+      <div class="mb-6">
+        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Risk Management & Compliance</h1>
+        <p class="text-sm mt-1" style="color:#6b7280;">Navigating the 2026 algorithmic climate — originality, brand safety, and copyright.</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="risk-cards"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+// Replace these two values with your own from: supabase.com → Project Settings → API
+const SUPABASE_URL  = 'https://gttjrwtqkmmvaymlejdz.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_m7FgeZZc_EgfsnPyQD2NgQ_rKuWvLiu';
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// In-memory task state: { task_id: true/false }
+let taskState = {};
+
+// ─── STATIC DATA ──────────────────────────────────────────────────────────────
+const TASKS = {
+  setup: [
+    { id:'s1', text:'Choose channel niche (AI Investing, Debt Architecture, Creator Tax, Senior Longevity, or Fintech Security)', tip:'Higher CPM niches = higher advertiser competition. Debt Architecture offers $20–50 CPM.' },
+    { id:'s2', text:'Finalize channel name using Niche + Personality Blend or Authority-First formula', tip:'E.g. "Debt Architect" or "The Nomad Investor" — short, punchy, keyword-rich.' },
+    { id:'s3', text:'Define brand color palette (deep blue, forest green, or charcoal gray)' },
+    { id:'s4', text:'Create channel logo and banner (clean sans-serif typography)', tip:'Banner must communicate value prop in under 5 seconds.' },
+    { id:'s5', text:'Write channel description with primary keywords embedded' },
+    { id:'s6', text:'Set up YouTube channel and verify with phone number' },
+    { id:'s7', text:'Enable 2-Step Verification (2FA) — mandatory for YouTube Partner Program 2026' },
+    { id:'s8', text:'Create channel trailer (60–90 sec) communicating unique value proposition' },
+    { id:'s9', text:'Set up consistent thumbnail template (brand colors, typography)' },
+    { id:'s10', text:'Create social media placeholders (Twitter/X, Instagram) with matching branding' },
+  ],
+  tech: [
+    { id:'t1', text:'Sign up for ElevenLabs — set up Professional Voice Clone (PVC)', tip:'Audio quality is the #1 retention factor for faceless channels.' },
+    { id:'t2', text:'Set up ChatGPT (GPT-4o/5) for creative hooks and AIDA-framework scripts' },
+    { id:'t3', text:'Set up Claude for analytical depth and long-form financial explanations' },
+    { id:'t4', text:'Set up Perplexity/Gemini for real-time 2026 market data and regulatory research' },
+    { id:'t5', text:'Sign up for InVideo AI or Pictory for Script-to-Video automation', tip:'Reduces 4–8h of editing to under 60 minutes.' },
+    { id:'t6', text:'Install Descript for text-based audio-visual editing and filler word removal' },
+    { id:'t7', text:'Set up OpusClip for automated Shorts repurposing from long-form content' },
+    { id:'t8', text:'Set up Flourish or Datawrapper for animated storytelling charts' },
+    { id:'t9', text:'Test Julius AI for automated financial dataset visualization' },
+    { id:'t10', text:'Subscribe to Artgrid or Storyblocks for licensed royalty-free footage' },
+    { id:'t11', text:'Set up VidIQ or OutlierKit for keyword validation and outlier topic research' },
+  ],
+  growth: [
+    { id:'g1', text:'Identify 10 "Outlier" video topics using VidIQ/OutlierKit that overperform in niche' },
+    { id:'g2', text:'Produce first 5 long-form videos (15–20 min) using the Hook → Scenario → Insight → CTA structure' },
+    { id:'g3', text:'Create 4 Shorts from each long-form video as high-impact teasers', tip:'Platform averages 200B daily Shorts views — biggest discovery mechanism.' },
+    { id:'g4', text:'Apply the "Compression Formula" to all titles: e.g. "Learn Every Tax Loophole in 12 Minutes"' },
+    { id:'g5', text:'Use pinned comments in Shorts to funnel traffic to long-form authority content' },
+    { id:'g6', text:'Implement pattern interrupt hooks in first 3 seconds of every Short' },
+    { id:'g7', text:'Ensure every video frame has motion, kinetic text, or stock cut every 3–5 seconds' },
+    { id:'g8', text:'Add background music at narrative-enhancing level (not overwhelming narration)' },
+    { id:'g9', text:'Publish 30 videos minimum to train the algorithm on target audience' },
+    { id:'g10', text:'Analyze retention curves in YouTube Analytics — identify and fix drop-off points' },
+    { id:'g11', text:'Target 8+ minute video length to unlock mid-roll ad placements (3x RPM boost)' },
+  ],
+  scale: [
+    { id:'sc1', text:'Build content batching system (2–4 weeks of scripts/edits in advance)' },
+    { id:'sc2', text:'Hire scriptwriter on Upwork with finance domain knowledge ($2K/mo revenue threshold)' },
+    { id:'sc3', text:'Hire video editor with Frame.io workflow and cinematic pacing mandate' },
+    { id:'sc4', text:'Create written SOP documents for script, voiceover, editing, and upload workflows' },
+    { id:'sc5', text:'Launch Discord community with free/premium tiers and automated role bots' },
+    { id:'sc6', text:'Start Substack newsletter (e.g. weekly AI investing tools report)' },
+    { id:'sc7', text:'Conduct monthly community polls and interviews to fuel content calendar' },
+    { id:'sc8', text:'Shift owner role to editorial oversight: brand consistency, fact-checking, compliance' },
+    { id:'sc9', text:'Implement mandatory fact-checking SOP for all tax/investment-related scripts' },
+    { id:'sc10', text:'Apply for YouTube Partner Program (1K subs + 4K watch hours or 10M Shorts views)' },
+  ]
+};
+
+const TOOLS = [
+  { name:'ElevenLabs', category:'Voiceover', desc:'Professional Voice Cloning & natural narration with emotional nuance', cost:'$5–$22/mo', url:'https://elevenlabs.io', icon:'mic' },
+  { name:'ChatGPT', category:'Scriptwriting', desc:'Creative hooks, AIDA framework storytelling, and engaging narratives', cost:'Free–$20/mo', url:'https://chat.openai.com', icon:'pen-tool' },
+  { name:'Claude', category:'Scriptwriting', desc:'Analytical depth, long-form consistency, and complex financial explanations', cost:'Free–$20/mo', url:'https://claude.ai', icon:'brain' },
+  { name:'Perplexity', category:'Research', desc:'Real-time 2026 market data, interest rates, and regulatory updates', cost:'Free–$20/mo', url:'https://perplexity.ai', icon:'search' },
+  { name:'InVideo AI', category:'Video Editing', desc:'Script-to-Video automation — 4–8h editing reduced to under 60 minutes', cost:'$19–$25/mo', url:'https://invideo.io', icon:'video' },
+  { name:'OpusClip', category:'Shorts', desc:'AI identifies viral moments from long-form and auto-creates Shorts', cost:'$9–$29/mo', url:'https://opus.pro', icon:'scissors' },
+  { name:'Descript', category:'Editing', desc:'Text-based editor — remove filler words by editing the transcript', cost:'Free–$24/mo', url:'https://descript.com', icon:'edit-3' },
+  { name:'Flourish', category:'Data Viz', desc:'Animated storytelling charts for dense financial data segments', cost:'Free–$20/mo', url:'https://flourish.studio', icon:'bar-chart' },
+  { name:'VidIQ', category:'SEO', desc:'Keyword validation, outlier topic research, and competitor analysis', cost:'Free–$49/mo', url:'https://vidiq.com', icon:'trending-up' },
+  { name:'Storyblocks', category:'Assets', desc:'Licensed royalty-free stock footage and music — avoid Content ID strikes', cost:'~$15/mo', url:'https://storyblocks.com', icon:'film' },
+  { name:'Julius AI', category:'Data Viz', desc:'Upload raw financial datasets and auto-generate visual insights', cost:'Free–$20/mo', url:'https://julius.ai', icon:'database' },
+  { name:'Frame.io', category:'Collaboration', desc:'Video review and revision cycles for remote editor teams', cost:'Free–$15/mo', url:'https://frame.io', icon:'git-pull-request' },
+];
+
+const NICHES = [
+  { name:'Debt Architecture', cpm:'$20–$50', growth:'High/Stable', driver:'Lead Generation', badge:'badge-green', desc:'Methodical debt repayment systems — $350/lead for loan referrals. Year-round demand cycle.' },
+  { name:'AI Investing', cpm:'$15–$30', growth:'Exponential', driver:'Fintech Subscriptions', badge:'badge-amber', desc:'Demystifying AI-driven investing tools, robo-advisors, and algorithmic portfolio management.' },
+  { name:'Creator Tax & Compliance', cpm:'$15–$30', growth:'14.1% CAGR', driver:'B2B SaaS/Consulting', badge:'badge-blue', desc:'S-Corp transitions, international tax arbitrage, digital nomad finances. CPC for "business insurance" up to $79.' },
+  { name:'Senior Wealth Longevity', cpm:'$9–$12', growth:'19x Expansion', driver:'Insurance/Health Tech', badge:'badge-green', desc:'Medicare optimization, long-term care funding, intergenerational wealth transfer. Low competition.' },
+  { name:'Fintech Security', cpm:'$10–$30', growth:'High', driver:'Digital Bank Acquisitions', badge:'badge-amber', desc:'Digital banking security, virtual cards, identity theft protection. Targets unbanked/underbanked populations.' },
+];
+
+const COMPETITORS = [
+  { name:'MagnatesMedia', strategy:'Motion Graphics', hook:'Psychological Narrative', rev:'$30k–$50k+' },
+  { name:'The Swedish Investor', strategy:'Whiteboard Animation', hook:'Replicable Blueprints', rev:'$15k–$25k' },
+  { name:'Economics Explained', strategy:'Stock + Data Overlays', hook:'Macro-Authority', rev:'$20k–$40k' },
+  { name:'Infographics Show', strategy:'2D Fast Animation', hook:'Curiosity Listicles', rev:'$100k–$300k' },
+  { name:'Fern', strategy:'3D Documentary', hook:'Investigative Mystery', rev:'$80k+' },
+];
+
+const MONETIZE = [
+  { title:'AdSense / RPM', icon:'tv', items:['Target 8+ min videos for mid-roll ads (3x RPM vs short)','Finance niche avg RPM: $10–$50 depending on sub-niche','100K views = $700–$870 net AdSense profit','Debt Architecture niche: up to $50 RPM'] },
+  { title:'Affiliate Programs', icon:'link', items:['Banking signups (Chase, Chime, SoFi): $50–$100/user','Investing platforms (Acorns, eToro): $5–$50+/funded account','Loan referrals (LendingTree): $200–$350/lead','Credit cards (Bankrate, Amex): $100–$200/approval'] },
+  { title:'Digital Products', icon:'package', items:['Notion/Excel budget & investment tracker templates','High-ticket online courses (tax, investing strategies)','YouTube Shopping: tag affiliate products in-video (2026 feature)','Productivity dashboards tapping multi-billion dollar market'] },
+  { title:'Sponsorships', icon:'star', items:['B2B/SaaS partnerships: $15–$30 CPM for tutorial integrations','Finance brands pay premium for high-intent audiences','Faceless channels benefit from "unbiased expert" positioning','Brand Safety + Targeted Demographics = premium rates'] },
+];
+
+const RISKS = [
+  { title:'Avoid Inauthentic Content Flag', icon:'alert-triangle', color:'#ef4444', items:['30% Modification Rule: at least 30% original thought per video','Stock footage must be "significantly changed" with narrative context','Disclose all synthetically generated realistic content (2026 law)','No "AI-generated spam" or lazy compilations — human-in-the-loop always'] },
+  { title:'Brand Safety & Advertiser Friendliness', icon:'shield-check', color:'#10b981', items:['No incendiary financial claims or "get-rich-quick" promises','Mandatory fact-checking phase in script SOP for tax/investment topics','Enable 2FA on all accounts — compromised accounts = permanent ban','Maintain compliance with regulated investment product disclosures'] },
+  { title:'Copyright & Content ID', icon:'copyright', color:'#fbbf24', items:['Only royalty-free music and footage (Artgrid, Storyblocks)','Transformative use: add commentary/educational value to third-party clips','2026 Content ID system is highly sophisticated — zero tolerance approach','Never reproduce third-party charts/graphs without licensing'] },
+  { title:'Algorithm Quality Standards', icon:'activity', color:'#60a5fa', items:['Originality is primary signal in 2026 — not just view count','High retention rate = primary recommendation driver','Engagement loops and community interaction boost distribution','Avoid recycled content — unique research angle required per video'] },
+];
+
+// ─── SUPABASE HELPERS ─────────────────────────────────────────────────────────
+function setSyncing(active) {
+  const el = document.getElementById('sync-indicator');
+  if (el) el.className = active ? 'flex items-center gap-1.5 syncing' : 'flex items-center gap-1.5 idle';
+}
+
+async function loadTaskState() {
+  const { data, error } = await db.from('task_progress').select('task_id, completed');
+  if (error) { console.error('Supabase load error:', error); return; }
+  taskState = {};
+  (data || []).forEach(row => { taskState[row.task_id] = row.completed; });
+}
+
+async function saveTaskState(taskId, completed) {
+  setSyncing(true);
+  const { error } = await db.from('task_progress').upsert(
+    { task_id: taskId, completed, updated_at: new Date().toISOString() },
+    { onConflict: 'task_id' }
+  );
+  if (error) console.error('Supabase save error:', error);
+  setSyncing(false);
+}
+
+function subscribeToChanges() {
+  db.channel('task_progress_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'task_progress' }, payload => {
+      const { task_id, completed } = payload.new || {};
+      if (!task_id) return;
+      taskState[task_id] = completed;
+      // Update checkbox and label without full re-render
+      const checkbox = document.getElementById(task_id);
+      if (checkbox && checkbox.checked !== completed) {
+        checkbox.checked = completed;
+        const label = document.querySelector(`label[for="${task_id}"]`);
+        if (label) {
+          label.style.textDecoration = completed ? 'line-through' : 'none';
+          label.style.color = completed ? '#4b5563' : '#d1d5db';
+        }
+      }
+      updateProgress();
+    })
+    .subscribe();
+}
+
+// ─── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
+function renderTasks(phase, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  TASKS[phase].forEach(task => {
+    const checked = !!taskState[task.id];
+    const div = document.createElement('div');
+    div.className = 'task-item flex items-start gap-3 p-3 rounded-xl';
+    div.style.cssText = 'background:#0f1812;border:1px solid #1e2d23;';
+    div.innerHTML = `
+      <input type="checkbox" id="${task.id}" ${checked ? 'checked' : ''} onchange="toggleTask('${task.id}', this.checked)">
+      <div class="flex-1">
+        <label for="${task.id}" class="text-sm cursor-pointer" style="color:${checked ? '#4b5563' : '#d1d5db'};text-decoration:${checked ? 'line-through' : 'none'};">${task.text}</label>
+        ${task.tip ? `<p class="text-xs mt-1" style="color:#6b7280;">💡 ${task.tip}</p>` : ''}
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function renderToolCards() {
+  const container = document.getElementById('tool-cards-container');
+  if (!container) return;
+  container.innerHTML = '';
+  TOOLS.forEach(tool => {
+    const div = document.createElement('div');
+    div.className = 'tool-card rounded-xl p-4 cursor-pointer';
+    div.style.cssText = 'background:#0f1812;';
+    div.onclick = () => window.open(tool.url, '_blank');
+    div.innerHTML = `
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div style="background:#1e2d23;border-radius:8px;padding:6px;"><i data-lucide="${tool.icon}" style="width:14px;height:14px;color:#10b981;"></i></div>
+          <span class="text-sm font-medium" style="color:#e2e8f0;">${tool.name}</span>
+        </div>
+        <span class="badge badge-green">${tool.category}</span>
+      </div>
+      <p class="text-xs mb-2" style="color:#6b7280;">${tool.desc}</p>
+      <div class="flex items-center justify-between">
+        <span class="text-xs" style="color:#34d399;">${tool.cost}</span>
+        <i data-lucide="external-link" style="width:12px;height:12px;color:#4b5563;"></i>
+      </div>`;
+    container.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+function renderNicheCards() {
+  const container = document.getElementById('niche-cards-container');
+  if (!container) return;
+  container.innerHTML = '';
+  NICHES.forEach((n, i) => {
+    const div = document.createElement('div');
+    div.className = 'niche-card rounded-xl p-4';
+    div.style.cssText = 'background:#0f1812;';
+    div.innerHTML = `
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-sm font-medium" style="color:#e2e8f0;">${n.name}</span>
+            ${i === 0 ? '<span class="badge badge-green">Top CPM</span>' : ''}
+          </div>
+          <p class="text-xs" style="color:#6b7280;">${n.desc}</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-3 mt-3 pt-3" style="border-top:1px solid #1e2d23;">
+        <div><p class="text-xs" style="color:#6b7280;">Est. CPM</p><p class="text-sm font-semibold" style="color:#10b981;">${n.cpm}</p></div>
+        <div><p class="text-xs" style="color:#6b7280;">Growth</p><p class="text-sm font-semibold" style="color:#34d399;">${n.growth}</p></div>
+        <div><p class="text-xs" style="color:#6b7280;">Revenue Driver</p><p class="text-sm font-semibold" style="color:#e2e8f0;">${n.driver}</p></div>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function renderCompTable() {
+  const tbody = document.getElementById('comp-table');
+  if (!tbody) return;
+  COMPETITORS.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.style.cssText = 'border-bottom:1px solid #1e2d23;' + (i % 2 === 0 ? 'background:#0a0f0d;' : 'background:#0f1812;');
+    tr.innerHTML = `
+      <td class="p-3 text-sm font-medium" style="color:#e2e8f0;">${c.name}</td>
+      <td class="p-3 text-xs" style="color:#9ca3af;">${c.strategy}</td>
+      <td class="p-3 text-xs hidden sm:table-cell" style="color:#9ca3af;">${c.hook}</td>
+      <td class="p-3 text-xs font-medium" style="color:#10b981;">${c.rev}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderMonetizeCards() {
+  const container = document.getElementById('monetize-cards');
+  if (!container) return;
+  const icons = ['tv', 'link', 'package', 'star'];
+  MONETIZE.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = 'rounded-xl p-4';
+    div.style.cssText = 'background:#0f1812;border:1px solid #1e2d23;';
+    div.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <div style="background:#1e2d23;border-radius:8px;padding:6px;"><i data-lucide="${icons[i]}" style="width:14px;height:14px;color:#10b981;"></i></div>
+        <span class="text-sm font-medium" style="color:#e2e8f0;">${m.title}</span>
+      </div>
+      <ul class="space-y-1.5">${m.items.map(item => `<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:#10b981;margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
+    container.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+function renderRiskCards() {
+  const container = document.getElementById('risk-cards');
+  if (!container) return;
+  RISKS.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'rounded-xl p-4';
+    div.style.cssText = 'background:#0f1812;border:1px solid #1e2d23;';
+    div.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="${r.icon}" style="width:14px;height:14px;color:${r.color};"></i>
+        <span class="text-sm font-medium" style="color:#e2e8f0;">${r.title}</span>
+      </div>
+      <ul class="space-y-1.5">${r.items.map(item => `<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:${r.color};margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
+    container.appendChild(div);
+  });
+  lucide.createIcons();
+}
+
+// ─── TASK LOGIC ───────────────────────────────────────────────────────────────
+function toggleTask(id, checked) {
+  taskState[id] = checked;
+  const label = document.querySelector(`label[for="${id}"]`);
+  if (label) {
+    label.style.textDecoration = checked ? 'line-through' : 'none';
+    label.style.color = checked ? '#4b5563' : '#d1d5db';
+  }
+  updateProgress();
+  saveTaskState(id, checked);
+}
+
+function updateProgress() {
+  const phases = ['setup', 'tech', 'growth', 'scale'];
+  let totalDone = 0, totalAll = 0;
+  phases.forEach(p => {
+    const tasks = TASKS[p];
+    const done = tasks.filter(t => !!taskState[t.id]).length;
+    totalDone += done;
+    totalAll += tasks.length;
+    const pct = tasks.length > 0 ? Math.round(done / tasks.length * 100) : 0;
+    const bar = document.getElementById('bar-' + p);
+    const prog = document.getElementById('prog-' + p);
+    if (bar) bar.style.width = pct + '%';
+    if (prog) prog.textContent = pct + '%';
+  });
+  const globalPct = totalAll > 0 ? Math.round(totalDone / totalAll * 100) : 0;
+  const globalBar = document.getElementById('global-bar');
+  const globalPctEl = document.getElementById('global-pct');
+  const tasksDoneEl = document.getElementById('tasks-done');
+  if (globalBar) globalBar.style.width = globalPct + '%';
+  if (globalPctEl) globalPctEl.textContent = globalPct + '%';
+  if (tasksDoneEl) tasksDoneEl.textContent = totalDone + '/' + totalAll + ' tasks';
+}
+
+async function resetAll() {
+  if (!confirm('Reset ALL progress for everyone? This cannot be undone.')) return;
+  setSyncing(true);
+  const allIds = Object.values(TASKS).flat().map(t => t.id);
+  await db.from('task_progress').upsert(
+    allIds.map(id => ({ task_id: id, completed: false, updated_at: new Date().toISOString() })),
+    { onConflict: 'task_id' }
+  );
+  taskState = {};
+  setSyncing(false);
+  init();
+}
+
+function showSection(name, el) {
+  document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  const sec = document.getElementById('section-' + name);
+  if (sec) sec.classList.add('active');
+  if (el) el.classList.add('active');
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar.classList.contains('open')) sidebar.classList.remove('open');
+}
+
+function init() {
+  renderTasks('setup', 'tasks-setup');
+  renderTasks('tech', 'tasks-tech');
+  renderTasks('growth', 'tasks-growth');
+  renderTasks('scale', 'tasks-scale');
+  renderToolCards();
+  renderNicheCards();
+  renderCompTable();
+  renderMonetizeCards();
+  renderRiskCards();
+  updateProgress();
+  lucide.createIcons();
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadTaskState();
+  init();
+  subscribeToChanges();
+});
+</script>
+</body>
+</html>
