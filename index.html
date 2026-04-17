@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,9 +26,7 @@ tailwind.config = {
   .sidebar-link { transition: all .2s; }
   .sidebar-link:hover { background: #1e2d23; color: #10b981; }
   .sidebar-link.active { background: #162018; color: #10b981; border-left: 3px solid #10b981; }
-  .phase-tab { transition: all .2s; cursor: pointer; }
-  .phase-tab:hover { background: #1e2d23; }
-  .phase-tab.active { background: #1e2d23; border-bottom: 2px solid #10b981; color: #10b981; }
+  [dir="rtl"] .sidebar-link.active { border-left: none; border-right: 3px solid #10b981; }
   .task-item { transition: background .15s; }
   .task-item:hover { background: #162018; }
   input[type=checkbox] { accent-color: #10b981; width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
@@ -45,24 +43,34 @@ tailwind.config = {
   .badge-amber { background: #2d2510; color: #fbbf24; }
   .badge-blue { background: #0f1f2d; color: #60a5fa; }
   @media (max-width: 768px) { #sidebar { display: none; } #sidebar.open { display: flex; position: fixed; z-index: 50; } }
-
-  /* Sync indicator */
   #sync-indicator { transition: opacity .3s; }
   #sync-indicator.syncing { opacity: 1; }
   #sync-indicator.idle { opacity: 0; }
-  #db-banner { display:none; }
+  #db-banner { display:none; position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); z-index:200; border-radius:10px; padding:10px 20px; font-size:12px; font-weight:500; white-space:nowrap; box-shadow:0 4px 24px rgba(0,0,0,.5); }
+  /* RTL sidebar */
+  [dir="rtl"] #sidebar { left: auto; right: 0; border-right: none; border-left: 1px solid #1e2d23; }
+  [dir="rtl"] main { margin-left: 0 !important; margin-right: 14rem; }
+  @media (max-width: 768px) { [dir="rtl"] main { margin-right: 0 !important; } }
+  /* Lang dropdown */
+  #lang-menu { display:none; position:absolute; right:0; top:calc(100% + 6px); background:#0f1812; border:1px solid #253328; border-radius:8px; min-width:72px; z-index:200; overflow:hidden; }
+  [dir="rtl"] #lang-menu { right:auto; left:0; }
+  .lang-opt { display:block; width:100%; text-align:left; padding:7px 14px; font-size:12px; color:#e2e8f0; background:none; border:none; cursor:pointer; }
+  .lang-opt:hover { background:#1e2d23; color:#10b981; }
+  .lang-opt.active { color:#10b981; }
+  [dir="rtl"] .lang-opt { text-align:right; }
+  body.ar { font-family: 'Segoe UI', 'Arial', system-ui, sans-serif; }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
 </head>
 <body class="min-h-screen">
 
-<!-- DB status banner -->
-<div id="db-banner" style="position:fixed;top:0;left:0;right:0;z-index:100;padding:8px 16px;text-align:center;font-size:12px;font-weight:500;"></div>
+<div id="db-banner"></div>
 
 <!-- Top Bar -->
-<header class="fixed top-0 left-0 right-0 z-40 border-b border-dark-600 bg-dark-900/95 backdrop-blur-sm" style="background:#0a0f0d;border-bottom:1px solid #1e2d23;">
+<header id="main-header" class="fixed top-0 left-0 right-0 z-40" style="background:#0a0f0d;border-bottom:1px solid #1e2d23;">
   <div class="flex items-center justify-between px-4 h-14">
     <div class="flex items-center gap-3">
-      <button id="menu-btn" class="md:hidden p-2 rounded-lg hover:bg-dark-600" onclick="document.getElementById('sidebar').classList.toggle('open')">
+      <button id="menu-btn" class="md:hidden p-2 rounded-lg" onclick="document.getElementById('sidebar').classList.toggle('open')">
         <i data-lucide="menu" style="width:18px;height:18px;color:#10b981"></i>
       </button>
       <div class="flex items-center gap-2">
@@ -72,62 +80,67 @@ tailwind.config = {
         <span class="font-semibold text-sm" style="color:#e2e8f0;">Finance <span style="color:#10b981;">Command Center</span></span>
       </div>
     </div>
-    <!-- Global Progress -->
     <div class="flex items-center gap-3 flex-1 max-w-md mx-6">
-      <span class="text-xs whitespace-nowrap" style="color:#6b7280;">Overall Progress</span>
+      <span id="lbl-progress" class="text-xs whitespace-nowrap" style="color:#6b7280;">Overall Progress</span>
       <div class="flex-1 h-2 rounded-full" style="background:#1e2d23;">
         <div class="progress-fill h-2 rounded-full" id="global-bar" style="width:0%"></div>
       </div>
       <span class="text-xs font-medium whitespace-nowrap" style="color:#10b981;" id="global-pct">0%</span>
     </div>
     <div class="flex items-center gap-2">
-      <!-- Live sync dot -->
       <div id="sync-indicator" class="flex items-center gap-1.5 idle">
         <div style="width:6px;height:6px;border-radius:50%;background:#10b981;animation:pulse 1s infinite;"></div>
-        <span class="text-xs hidden sm:inline" style="color:#10b981;">syncing…</span>
+        <span id="lbl-syncing" class="text-xs hidden sm:inline" style="color:#10b981;">syncing…</span>
       </div>
-      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
-      <span class="badge badge-green hidden sm:inline">2026 Edition</span>
-      <span class="text-xs" style="color:#6b7280;" id="tasks-done">0/0 tasks</span>
+      <span class="badge badge-green hidden sm:inline" id="lbl-edition">2026 Edition</span>
+      <span class="text-xs" style="color:#6b7280;" id="tasks-done">0/0</span>
+      <!-- Language Dropdown -->
+      <div class="relative" id="lang-wrapper">
+        <button onclick="toggleLangMenu()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold" style="background:#1e2d23;color:#10b981;border:1px solid #253328;">
+          <span id="lang-label">ENG</span>
+          <i data-lucide="chevron-down" style="width:11px;height:11px;"></i>
+        </button>
+        <div id="lang-menu">
+          <button class="lang-opt active" onclick="setLang('en')">ENG</button>
+          <button class="lang-opt" onclick="setLang('fr')">FR</button>
+          <button class="lang-opt" onclick="setLang('ar')">AR</button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
 
-<!-- Layout -->
 <div class="flex pt-14 min-h-screen">
-
   <!-- Sidebar -->
   <aside id="sidebar" class="flex-col w-56 min-h-screen border-r fixed top-14 bottom-0 left-0 overflow-y-auto hidden md:flex" style="background:#0a0f0d;border-right:1px solid #1e2d23;z-index:30;">
     <nav class="p-3 space-y-1 flex-1">
-      <p class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">PHASES</p>
+      <p id="lbl-phases" class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">PHASES</p>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm active" onclick="showSection('setup',this);return false;">
-        <i data-lucide="settings" style="width:15px;height:15px"></i> Phase 1 · Setup
+        <i data-lucide="settings" style="width:15px;height:15px"></i> <span class="nav-setup">Phase 1 · Setup</span>
       </a>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('tech',this);return false;">
-        <i data-lucide="cpu" style="width:15px;height:15px"></i> Phase 2 · Tech Stack
+        <i data-lucide="cpu" style="width:15px;height:15px"></i> <span class="nav-tech">Phase 2 · Tech Stack</span>
       </a>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('growth',this);return false;">
-        <i data-lucide="trending-up" style="width:15px;height:15px"></i> Phase 3 · Growth
+        <i data-lucide="trending-up" style="width:15px;height:15px"></i> <span class="nav-growth">Phase 3 · Growth</span>
       </a>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('scale',this);return false;">
-        <i data-lucide="layers" style="width:15px;height:15px"></i> Phase 4 · Scaling
+        <i data-lucide="layers" style="width:15px;height:15px"></i> <span class="nav-scale">Phase 4 · Scaling</span>
       </a>
       <div class="border-t my-3" style="border-color:#1e2d23;"></div>
-      <p class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">RESOURCES</p>
+      <p id="lbl-resources" class="text-xs font-medium px-3 py-2" style="color:#4b5563;letter-spacing:.08em;">RESOURCES</p>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('niches',this);return false;">
-        <i data-lucide="bar-chart-2" style="width:15px;height:15px"></i> Niche Tracker
+        <i data-lucide="bar-chart-2" style="width:15px;height:15px"></i> <span class="nav-niches">Niche Tracker</span>
       </a>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('monetize',this);return false;">
-        <i data-lucide="dollar-sign" style="width:15px;height:15px"></i> Monetization
+        <i data-lucide="dollar-sign" style="width:15px;height:15px"></i> <span class="nav-monetize">Monetization</span>
       </a>
       <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm" onclick="showSection('risk',this);return false;">
-        <i data-lucide="shield" style="width:15px;height:15px"></i> Risk & Compliance
+        <i data-lucide="shield" style="width:15px;height:15px"></i> <span class="nav-risk">Risk & Compliance</span>
       </a>
     </nav>
     <div class="p-3 border-t" style="border-color:#1e2d23;">
-      <button onclick="resetAll()" class="w-full text-xs py-2 px-3 rounded-lg text-center" style="background:#1e2d23;color:#ef4444;border:1px solid #2f1515;">
-        Reset All Progress
-      </button>
+      <button onclick="resetAll()" id="btn-reset" class="w-full text-xs py-2 px-3 rounded-lg" style="background:#1e2d23;color:#ef4444;border:1px solid #2f1515;">Reset All Progress</button>
     </div>
   </aside>
 
@@ -137,175 +150,92 @@ tailwind.config = {
     <!-- SECTION: Setup -->
     <div id="section-setup" class="section-content active">
       <div class="mb-6">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="badge badge-blue">Phase 1</span>
-        </div>
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Channel Setup & Branding</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">Strategic branding for the US finance market — trust optimization for an anonymous channel.</p>
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-setup">Phase 1</span></div>
+        <h1 class="text-xl font-semibold" id="title-setup" style="color:#e2e8f0;">Channel Setup & Branding</h1>
+        <p class="text-sm mt-1" id="desc-setup" style="color:#6b7280;">Strategic branding for the US finance market.</p>
       </div>
       <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
         <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
-          <span>Phase 1 Progress</span><span id="prog-setup">0%</span>
+          <span id="prog-lbl-setup">Phase 1 Progress</span><span id="prog-setup">0%</span>
         </div>
         <div class="h-1.5 rounded-full" style="background:#1e2d23;">
           <div class="progress-fill h-1.5 rounded-full" id="bar-setup" style="width:0%"></div>
         </div>
       </div>
       <div class="space-y-2" id="tasks-setup"></div>
-      <div class="mt-5 rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
-        <div class="flex items-center gap-2 mb-2">
-          <i data-lucide="lightbulb" style="width:14px;height:14px;color:#fbbf24;"></i>
-          <span class="text-xs font-medium" style="color:#fbbf24;">Naming Strategy Tips</span>
-        </div>
-        <ul class="text-sm space-y-1" style="color:#9ca3af;">
-          <li>→ <strong style="color:#e2e8f0;">"Niche + Personality Blend"</strong> e.g. "The Nomad Investor", "Zen Coder Finance"</li>
-          <li>→ <strong style="color:#e2e8f0;">"Authority-First"</strong> e.g. "Debt Architect", "Wealth Framework"</li>
-          <li>→ Integrate keywords like "Finance", "Money", or "Wealth" for discoverability</li>
-          <li>→ Keep it short, punchy, and scalable across social platforms</li>
-        </ul>
-      </div>
+      <div class="mt-5 rounded-xl p-4" id="tips-setup-box" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
     <!-- SECTION: Tech Stack -->
     <div id="section-tech" class="section-content">
       <div class="mb-6">
-        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 2</span></div>
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Tech Stack — 2026 AI Production Suite</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">AI tools that reduce production cycles by 70%+ — the complete faceless channel toolkit.</p>
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-tech">Phase 2</span></div>
+        <h1 class="text-xl font-semibold" id="title-tech" style="color:#e2e8f0;">Tech Stack — 2026 AI Production Suite</h1>
+        <p class="text-sm mt-1" id="desc-tech" style="color:#6b7280;">AI tools that reduce production cycles by 70%+.</p>
       </div>
       <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
         <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
-          <span>Phase 2 Progress</span><span id="prog-tech">0%</span>
+          <span id="prog-lbl-tech">Phase 2 Progress</span><span id="prog-tech">0%</span>
         </div>
         <div class="h-1.5 rounded-full" style="background:#1e2d23;">
           <div class="progress-fill h-1.5 rounded-full" id="bar-tech" style="width:0%"></div>
         </div>
       </div>
       <div class="space-y-2 mb-6" id="tasks-tech"></div>
-      <h2 class="text-sm font-semibold mb-3" style="color:#e2e8f0;">Resource Hub — Recommended Tools</h2>
+      <h2 class="text-sm font-semibold mb-3" id="lbl-resource-hub" style="color:#e2e8f0;">Resource Hub — Recommended Tools</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" id="tool-cards-container"></div>
     </div>
 
     <!-- SECTION: Growth -->
     <div id="section-growth" class="section-content">
       <div class="mb-6">
-        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 3</span></div>
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Growth Strategy — 0 to 100K Subscribers</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">Algorithmic breakthrough via Shorts-to-Longform funnel and SEO-optimized content.</p>
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-growth">Phase 3</span></div>
+        <h1 class="text-xl font-semibold" id="title-growth" style="color:#e2e8f0;">Growth Strategy — 0 to 100K Subscribers</h1>
+        <p class="text-sm mt-1" id="desc-growth" style="color:#6b7280;">Algorithmic breakthrough via Shorts-to-Longform funnel.</p>
       </div>
       <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
         <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
-          <span>Phase 3 Progress</span><span id="prog-growth">0%</span>
+          <span id="prog-lbl-growth">Phase 3 Progress</span><span id="prog-growth">0%</span>
         </div>
         <div class="h-1.5 rounded-full" style="background:#1e2d23;">
           <div class="progress-fill h-1.5 rounded-full" id="bar-growth" style="width:0%"></div>
         </div>
       </div>
       <div class="space-y-2 mb-5" id="tasks-growth"></div>
-      <div class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;">
-        <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="zap" style="width:14px;height:14px;color:#10b981;"></i>
-          <span class="text-sm font-medium" style="color:#10b981;">Retention Mechanics Cheat Sheet</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#34d399;">Visual Motion</p>
-            <p class="text-xs" style="color:#6b7280;">Stock cut or kinetic text every 3–5 seconds. Static screens kill retention.</p>
-          </div>
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#34d399;">Hook Timing</p>
-            <p class="text-xs" style="color:#6b7280;">Core value prop or shocking statement within first 10–15 seconds.</p>
-          </div>
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#34d399;">The 30-Video Rule</p>
-            <p class="text-xs" style="color:#6b7280;">Publish 30+ videos minimum to train the algorithm before expecting traction.</p>
-          </div>
-        </div>
-      </div>
+      <div id="retention-box" class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
     <!-- SECTION: Scaling -->
     <div id="section-scale" class="section-content">
       <div class="mb-6">
-        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue">Phase 4</span></div>
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Scaling Operations — 100K to 1M Subscribers</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">Transition from creator to media asset operator with SOPs, hiring, and community building.</p>
+        <div class="flex items-center gap-2 mb-1"><span class="badge badge-blue" id="badge-scale">Phase 4</span></div>
+        <h1 class="text-xl font-semibold" id="title-scale" style="color:#e2e8f0;">Scaling Operations — 100K to 1M</h1>
+        <p class="text-sm mt-1" id="desc-scale" style="color:#6b7280;">Transition from creator to media asset operator.</p>
       </div>
       <div class="rounded-xl p-4 mb-5" style="background:#0f1812;border:1px solid #1e2d23;">
         <div class="flex justify-between text-xs mb-2" style="color:#6b7280;">
-          <span>Phase 4 Progress</span><span id="prog-scale">0%</span>
+          <span id="prog-lbl-scale">Phase 4 Progress</span><span id="prog-scale">0%</span>
         </div>
         <div class="h-1.5 rounded-full" style="background:#1e2d23;">
           <div class="progress-fill h-1.5 rounded-full" id="bar-scale" style="width:0%"></div>
         </div>
       </div>
       <div class="space-y-2 mb-5" id="tasks-scale"></div>
-      <div class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;">
-        <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="file-text" style="width:14px;height:14px;color:#10b981;"></i>
-          <span class="text-sm font-medium" style="color:#10b981;">Standard Operating Procedures</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Scriptwriter SOP</p>
-            <p class="text-xs" style="color:#6b7280;">1,500–1,800 words · 48h turnaround · Structure: <span style="color:#34d399;">Hook → Scenario → Insight → CTA</span></p>
-          </div>
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Editor SOP</p>
-            <p class="text-xs" style="color:#6b7280;">Use Frame.io for revisions · Cinematic pacing · Hi-fi sound design · Visual cut every 3–5s</p>
-          </div>
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Batching Schedule</p>
-            <p class="text-xs" style="color:#6b7280;">Scripts, voiceovers, and edits batched 2–4 weeks in advance for consistent uploads.</p>
-          </div>
-          <div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;">
-            <p class="text-xs font-medium mb-1" style="color:#e2e8f0;">Hiring Filter</p>
-            <p class="text-xs" style="color:#6b7280;">Upwork/Fiverr specialists only. Scriptwriters must have finance domain knowledge.</p>
-          </div>
-        </div>
-      </div>
+      <div id="sop-box" class="rounded-xl p-4 mt-4" style="background:#0f1812;border:1px solid #1e2d23;"></div>
     </div>
 
     <!-- SECTION: Niche Tracker -->
     <div id="section-niches" class="section-content">
       <div class="mb-6">
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">CPM / Niche Tracker</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">5 high-growth US sub-niches from the 2026 report — ranked by RPM potential.</p>
+        <h1 class="text-xl font-semibold" id="title-niches" style="color:#e2e8f0;">CPM / Niche Tracker</h1>
+        <p class="text-sm mt-1" id="desc-niches" style="color:#6b7280;">5 high-growth US sub-niches ranked by RPM potential.</p>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
-          <p class="text-xs mb-1" style="color:#6b7280;">Top RPM</p>
-          <p class="text-xl font-semibold" style="color:#10b981;">$50</p>
-          <p class="text-xs" style="color:#6b7280;">Debt Architecture</p>
-        </div>
-        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
-          <p class="text-xs mb-1" style="color:#6b7280;">Fastest Growth</p>
-          <p class="text-xl font-semibold" style="color:#10b981;">19x</p>
-          <p class="text-xs" style="color:#6b7280;">Senior Longevity</p>
-        </div>
-        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
-          <p class="text-xs mb-1" style="color:#6b7280;">Best Lead Pay</p>
-          <p class="text-xl font-semibold" style="color:#10b981;">$350</p>
-          <p class="text-xs" style="color:#6b7280;">Loan Referrals</p>
-        </div>
-        <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;">
-          <p class="text-xs mb-1" style="color:#6b7280;">Creator Economy</p>
-          <p class="text-xl font-semibold" style="color:#10b981;">$480B</p>
-          <p class="text-xs" style="color:#6b7280;">Projected by 2027</p>
-        </div>
-      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" id="niche-metrics"></div>
       <div class="space-y-3" id="niche-cards-container"></div>
-      <h2 class="text-sm font-semibold mt-6 mb-3" style="color:#e2e8f0;">Competitor Benchmark Analysis</h2>
+      <h2 class="text-sm font-semibold mt-6 mb-3" id="lbl-competitor" style="color:#e2e8f0;">Competitor Benchmark Analysis</h2>
       <div class="rounded-xl overflow-hidden" style="border:1px solid #1e2d23;">
         <table class="w-full text-sm">
-          <thead>
-            <tr style="background:#0f1812;border-bottom:1px solid #1e2d23;">
-              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Channel</th>
-              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Strategy</th>
-              <th class="text-left p-3 text-xs font-medium hidden sm:table-cell" style="color:#6b7280;">Hook Style</th>
-              <th class="text-left p-3 text-xs font-medium" style="color:#6b7280;">Est. Monthly Rev</th>
-            </tr>
-          </thead>
+          <thead id="comp-thead"></thead>
           <tbody id="comp-table"></tbody>
         </table>
       </div>
@@ -314,30 +244,18 @@ tailwind.config = {
     <!-- SECTION: Monetization -->
     <div id="section-monetize" class="section-content">
       <div class="mb-6">
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Monetization Blueprint</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">Stack multiple revenue streams — AdSense alone is fragile.</p>
+        <h1 class="text-xl font-semibold" id="title-monetize" style="color:#e2e8f0;">Monetization Blueprint</h1>
+        <p class="text-sm mt-1" id="desc-monetize" style="color:#6b7280;">Stack multiple revenue streams.</p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5" id="monetize-cards"></div>
-      <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #10b981;">
-        <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="calculator" style="width:14px;height:14px;color:#10b981;"></i>
-          <span class="text-sm font-medium" style="color:#10b981;">Revenue Formula & Break-Even</span>
-        </div>
-        <div class="space-y-2 text-sm" style="color:#9ca3af;">
-          <p><span style="color:#e2e8f0;font-family:monospace;">R_T = (V_L × RPM_L) + (V_S × RPM_S) + R_Affiliate + R_Products</span></p>
-          <p>At avg RPM of <strong style="color:#34d399;">$10</strong>, break-even requires <strong style="color:#34d399;">13,000–30,000 views/video</strong></p>
-          <p>A video at <strong style="color:#34d399;">100K views</strong> → net profit of <strong style="color:#34d399;">$700–$870</strong> from AdSense alone</p>
-          <p>Per-video production cost: <strong style="color:#34d399;">$130–$300</strong> (script + voiceover + editing)</p>
-          <p>Profitability target: <strong style="color:#34d399;">within 6 months</strong> with diversified stack</p>
-        </div>
-      </div>
+      <div id="revenue-box" class="rounded-xl p-4" style="background:#0f1812;border:1px solid #10b981;"></div>
     </div>
 
     <!-- SECTION: Risk -->
     <div id="section-risk" class="section-content">
       <div class="mb-6">
-        <h1 class="text-xl font-semibold" style="color:#e2e8f0;">Risk Management & Compliance</h1>
-        <p class="text-sm mt-1" style="color:#6b7280;">Navigating the 2026 algorithmic climate — originality, brand safety, and copyright.</p>
+        <h1 class="text-xl font-semibold" id="title-risk" style="color:#e2e8f0;">Risk Management & Compliance</h1>
+        <p class="text-sm mt-1" id="desc-risk" style="color:#6b7280;">Navigating the 2026 algorithmic climate.</p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="risk-cards"></div>
     </div>
@@ -346,114 +264,465 @@ tailwind.config = {
 </div>
 
 <script>
-// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
-// Replace these two values with your own from: supabase.com → Project Settings → API
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 const SUPABASE_URL  = 'https://gttjrwtqkmmvaymlejdz.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_m7FgeZZc_EgfsnPyQD2NgQ_rKuWvLiu';
-
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// In-memory task state: { task_id: true/false }
 let taskState = {};
+let lang = localStorage.getItem('lang') || 'en';
 
-// ─── STATIC DATA ──────────────────────────────────────────────────────────────
+// ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    overall: 'Overall Progress', syncing: 'syncing…', edition: '2026 Edition',
+    phases: 'PHASES', resources: 'RESOURCES', reset: 'Reset All Progress',
+    tasks: (d,t) => `${d}/${t} tasks`,
+    nav: { setup:'Phase 1 · Setup', tech:'Phase 2 · Tech Stack', growth:'Phase 3 · Growth', scale:'Phase 4 · Scaling', niches:'Niche Tracker', monetize:'Monetization', risk:'Risk & Compliance' },
+    progLbl: { setup:'Phase 1 Progress', tech:'Phase 2 Progress', growth:'Phase 3 Progress', scale:'Phase 4 Progress' },
+    badges: { setup:'Phase 1', tech:'Phase 2', growth:'Phase 3', scale:'Phase 4' },
+    titles: {
+      setup: 'Channel Setup & Branding', tech: 'Tech Stack — 2026 AI Production Suite',
+      growth: 'Growth Strategy — 0 to 100K Subscribers', scale: 'Scaling Operations — 100K to 1M',
+      niches: 'CPM / Niche Tracker', monetize: 'Monetization Blueprint', risk: 'Risk Management & Compliance'
+    },
+    descs: {
+      setup: 'Strategic branding for the US finance market — trust optimization for an anonymous channel.',
+      tech: 'AI tools that reduce production cycles by 70%+ — the complete faceless channel toolkit.',
+      growth: 'Algorithmic breakthrough via Shorts-to-Longform funnel and SEO-optimized content.',
+      scale: 'Transition from creator to media asset operator with SOPs, hiring, and community building.',
+      niches: '5 high-growth US sub-niches from the 2026 report — ranked by RPM potential.',
+      monetize: 'Stack multiple revenue streams — AdSense alone is fragile.',
+      risk: 'Navigating the 2026 algorithmic climate — originality, brand safety, and copyright.'
+    },
+    resourceHub: 'Resource Hub — Recommended Tools',
+    competitorTitle: 'Competitor Benchmark Analysis',
+    compHeaders: ['Channel','Strategy','Hook Style','Est. Monthly Rev'],
+    topCpm: 'Top RPM', fastGrowth: 'Fastest Growth', bestLead: 'Best Lead Pay', creatorEcon: 'Creator Economy',
+    topCpmSub: 'Debt Architecture', fastGrowthSub: 'Senior Longevity', bestLeadSub: 'Loan Referrals', creatorEconSub: 'Projected by 2027',
+    nicheLabels: { cpm:'Est. CPM', growth:'Growth', driver:'Revenue Driver', topCpmBadge:'Top CPM' },
+    revenueTitle: 'Revenue Formula & Break-Even',
+    revenueLines: [
+      '<span style="color:#e2e8f0;font-family:monospace;">R_T = (V_L × RPM_L) + (V_S × RPM_S) + R_Affiliate + R_Products</span>',
+      'At avg RPM of <strong style="color:#34d399;">$10</strong>, break-even requires <strong style="color:#34d399;">13,000–30,000 views/video</strong>',
+      'A video at <strong style="color:#34d399;">100K views</strong> → net profit of <strong style="color:#34d399;">$700–$870</strong> from AdSense alone',
+      'Per-video production cost: <strong style="color:#34d399;">$130–$300</strong> (script + voiceover + editing)',
+      'Profitability target: <strong style="color:#34d399;">within 6 months</strong> with diversified stack'
+    ],
+    tipsTitle: 'Naming Strategy Tips',
+    tips: [
+      '"Niche + Personality Blend" e.g. "The Nomad Investor", "Zen Coder Finance"',
+      '"Authority-First" e.g. "Debt Architect", "Wealth Framework"',
+      'Integrate keywords like "Finance", "Money", or "Wealth" for discoverability',
+      'Keep it short, punchy, and scalable across social platforms'
+    ],
+    retentionTitle: 'Retention Mechanics Cheat Sheet',
+    retention: [
+      { title:'Visual Motion', body:'Stock cut or kinetic text every 3–5 seconds. Static screens kill retention.' },
+      { title:'Hook Timing', body:'Core value prop or shocking statement within first 10–15 seconds.' },
+      { title:'The 30-Video Rule', body:'Publish 30+ videos minimum to train the algorithm before expecting traction.' }
+    ],
+    sopTitle: 'Standard Operating Procedures',
+    sops: [
+      { title:'Scriptwriter SOP', body:'1,500–1,800 words · 48h turnaround · Structure: <span style="color:#34d399;">Hook → Scenario → Insight → CTA</span>' },
+      { title:'Editor SOP', body:'Use Frame.io for revisions · Cinematic pacing · Hi-fi sound design · Visual cut every 3–5s' },
+      { title:'Batching Schedule', body:'Scripts, voiceovers, and edits batched 2–4 weeks in advance for consistent uploads.' },
+      { title:'Hiring Filter', body:'Upwork/Fiverr specialists only. Scriptwriters must have finance domain knowledge.' }
+    ]
+  },
+  fr: {
+    overall: 'Progression Globale', syncing: 'synchronisation…', edition: 'Édition 2026',
+    phases: 'PHASES', resources: 'RESSOURCES', reset: 'Réinitialiser la progression',
+    tasks: (d,t) => `${d}/${t} tâches`,
+    nav: { setup:'Phase 1 · Config.', tech:'Phase 2 · Tech Stack', growth:'Phase 3 · Croissance', scale:'Phase 4 · Mise à l\'échelle', niches:'Suivi de Niche', monetize:'Monétisation', risk:'Risque & Conformité' },
+    progLbl: { setup:'Progression Phase 1', tech:'Progression Phase 2', growth:'Progression Phase 3', scale:'Progression Phase 4' },
+    badges: { setup:'Phase 1', tech:'Phase 2', growth:'Phase 3', scale:'Phase 4' },
+    titles: {
+      setup: 'Configuration & Image de Marque', tech: 'Stack Tech — Suite IA 2026',
+      growth: 'Stratégie de Croissance — 0 à 100K Abonnés', scale: 'Mise à l\'Échelle — 100K à 1M',
+      niches: 'Suivi CPM / Niche', monetize: 'Plan de Monétisation', risk: 'Gestion des Risques & Conformité'
+    },
+    descs: {
+      setup: 'Branding stratégique pour le marché financier américain — optimisation de la confiance pour une chaîne anonyme.',
+      tech: 'Outils IA réduisant les cycles de production de 70%+ — la boîte à outils complète pour chaîne sans visage.',
+      growth: 'Percée algorithmique via le funnel Shorts-vers-Long et le contenu optimisé SEO.',
+      scale: 'Passer de créateur à opérateur d\'actif média avec SOPs, recrutement et communauté.',
+      niches: '5 sous-niches à forte croissance du rapport 2026 — classées par potentiel RPM.',
+      monetize: 'Diversifiez vos sources de revenus — AdSense seul est fragile.',
+      risk: 'Naviguer dans le climat algorithmique 2026 — originalité, sécurité de marque et droits d\'auteur.'
+    },
+    resourceHub: 'Hub de Ressources — Outils Recommandés',
+    competitorTitle: 'Analyse Comparative des Concurrents',
+    compHeaders: ['Chaîne','Stratégie','Style d\'Accroche','Rev. Mensuel Est.'],
+    topCpm: 'RPM Maximal', fastGrowth: 'Croissance Rapide', bestLead: 'Meilleur Lead', creatorEcon: 'Éco. Créateurs',
+    topCpmSub: 'Architecture de la Dette', fastGrowthSub: 'Longévité Senior', bestLeadSub: 'Référencement Prêts', creatorEconSub: 'Prévu d\'ici 2027',
+    nicheLabels: { cpm:'CPM Est.', growth:'Croissance', driver:'Moteur Revenus', topCpmBadge:'Top CPM' },
+    revenueTitle: 'Formule de Revenus & Seuil de Rentabilité',
+    revenueLines: [
+      '<span style="color:#e2e8f0;font-family:monospace;">R_T = (V_L × RPM_L) + (V_S × RPM_S) + R_Affilié + R_Produits</span>',
+      'Avec un RPM moyen de <strong style="color:#34d399;">10$</strong>, le seuil nécessite <strong style="color:#34d399;">13 000–30 000 vues/vidéo</strong>',
+      'Une vidéo à <strong style="color:#34d399;">100K vues</strong> → profit net de <strong style="color:#34d399;">700–870$</strong> via AdSense seul',
+      'Coût de production par vidéo : <strong style="color:#34d399;">130–300$</strong> (script + voix + montage)',
+      'Objectif de rentabilité : <strong style="color:#34d399;">dans les 6 mois</strong> avec un stack diversifié'
+    ],
+    tipsTitle: 'Conseils pour le Nom de Chaîne',
+    tips: [
+      '"Niche + Personnalité" ex. "The Nomad Investor", "Zen Coder Finance"',
+      '"Autorité d\'abord" ex. "Debt Architect", "Wealth Framework"',
+      'Intégrez des mots-clés : "Finance", "Argent" ou "Patrimoine" pour la visibilité',
+      'Restez court, percutant et déclinable sur toutes les plateformes'
+    ],
+    retentionTitle: 'Mécanismes de Rétention',
+    retention: [
+      { title:'Mouvement Visuel', body:'Coupe stock ou texte cinétique toutes les 3–5 secondes. Les plans fixes tuent la rétention.' },
+      { title:'Timing du Hook', body:'Proposition de valeur ou déclaration choc dans les 10–15 premières secondes.' },
+      { title:'La Règle des 30 Vidéos', body:'Publiez 30+ vidéos minimum pour entraîner l\'algorithme avant d\'attendre de la traction.' }
+    ],
+    sopTitle: 'Procédures Opérationnelles Standard',
+    sops: [
+      { title:'SOP Scénariste', body:'1 500–1 800 mots · 48h de délai · Structure : <span style="color:#34d399;">Hook → Scénario → Insight → CTA</span>' },
+      { title:'SOP Monteur', body:'Frame.io pour les révisions · Rythme cinématique · Sound design Hi-fi · Coupe toutes les 3–5s' },
+      { title:'Planning de Traitement', body:'Scripts, voix et montages traités 2–4 semaines à l\'avance pour des uploads réguliers.' },
+      { title:'Filtre de Recrutement', body:'Spécialistes Upwork/Fiverr uniquement. Les scénaristes doivent avoir des connaissances en finance.' }
+    ]
+  },
+  ar: {
+    overall: 'التقدم الإجمالي', syncing: 'مزامنة…', edition: 'إصدار 2026',
+    phases: 'المراحل', resources: 'الموارد', reset: 'إعادة تعيين التقدم',
+    tasks: (d,t) => `${d}/${t} مهام`,
+    nav: { setup:'المرحلة 1 · الإعداد', tech:'المرحلة 2 · التقنيات', growth:'المرحلة 3 · النمو', scale:'المرحلة 4 · التوسع', niches:'تتبع النيش', monetize:'التحقيق من الإيراد', risk:'المخاطر والامتثال' },
+    progLbl: { setup:'تقدم المرحلة 1', tech:'تقدم المرحلة 2', growth:'تقدم المرحلة 3', scale:'تقدم المرحلة 4' },
+    badges: { setup:'المرحلة 1', tech:'المرحلة 2', growth:'المرحلة 3', scale:'المرحلة 4' },
+    titles: {
+      setup: 'إعداد القناة والهوية البصرية', tech: 'المكدس التقني — مجموعة الذكاء الاصطناعي 2026',
+      growth: 'استراتيجية النمو — من 0 إلى 100K مشترك', scale: 'عمليات التوسع — من 100K إلى 1M',
+      niches: 'تتبع CPM / النيش', monetize: 'خطة تحقيق الإيراد', risk: 'إدارة المخاطر والامتثال'
+    },
+    descs: {
+      setup: 'بناء هوية بصرية استراتيجية للسوق المالي الأمريكي — تحسين الثقة لقناة مجهولة الهوية.',
+      tech: 'أدوات الذكاء الاصطناعي التي تقلل دورات الإنتاج بنسبة 70%+ — المجموعة الكاملة لقناة بدون وجه.',
+      growth: 'اختراق خوارزمي عبر قمع Shorts-إلى-المحتوى-الطويل والمحتوى المحسّن لمحركات البحث.',
+      scale: 'الانتقال من منشئ محتوى إلى مشغّل أصول إعلامية مع SOPs والتوظيف وبناء المجتمع.',
+      niches: '5 مجالات فرعية عالية النمو من تقرير 2026 — مرتبة حسب إمكانات RPM.',
+      monetize: 'تنويع مصادر الدخل — الاعتماد على AdSense وحده محفوف بالمخاطر.',
+      risk: 'التنقل في المناخ الخوارزمي 2026 — الأصالة، سلامة العلامة التجارية، وحقوق الطبع.'
+    },
+    resourceHub: 'مركز الموارد — الأدوات الموصى بها',
+    competitorTitle: 'تحليل المنافسين',
+    compHeaders: ['القناة','الاستراتيجية','نمط الهوك','الإيراد الشهري المقدر'],
+    topCpm: 'أعلى RPM', fastGrowth: 'أسرع نمو', bestLead: 'أفضل عائد للعميل', creatorEcon: 'اقتصاد المبدعين',
+    topCpmSub: 'هندسة الديون', fastGrowthSub: 'ثروة كبار السن', bestLeadSub: 'إحالات القروض', creatorEconSub: 'المتوقع بحلول 2027',
+    nicheLabels: { cpm:'CPM المقدر', growth:'النمو', driver:'محرك الإيراد', topCpmBadge:'أعلى CPM' },
+    revenueTitle: 'معادلة الإيراد ونقطة التعادل',
+    revenueLines: [
+      '<span style="color:#e2e8f0;font-family:monospace;">R_T = (V_L × RPM_L) + (V_S × RPM_S) + R_تابع + R_منتجات</span>',
+      'بمتوسط RPM قدره <strong style="color:#34d399;">$10</strong>، تحتاج <strong style="color:#34d399;">13,000–30,000 مشاهدة/فيديو</strong> للتعادل',
+      'فيديو بـ <strong style="color:#34d399;">100K مشاهدة</strong> → ربح صافي <strong style="color:#34d399;">$700–$870</strong> من AdSense وحده',
+      'تكلفة إنتاج لكل فيديو: <strong style="color:#34d399;">$130–$300</strong> (سكريبت + صوت + مونتاج)',
+      'هدف الربحية: <strong style="color:#34d399;">خلال 6 أشهر</strong> مع مصادر دخل متنوعة'
+    ],
+    tipsTitle: 'نصائح تسمية القناة',
+    tips: [
+      '"مزيج المجال + الشخصية" مثل: "المستثمر الرحّال"، "مبرمج المال"',
+      '"السلطة أولاً" مثل: "مهندس الديون"، "إطار الثروة"',
+      'ادمج كلمات مفتاحية مثل "فينانس" و"المال" و"الثروة" لتحسين ظهورك',
+      'احرص على الإيجاز والتأثير وقابلية التوسع عبر المنصات'
+    ],
+    retentionTitle: 'ميكانيكيات الاحتفاظ بالمشاهد',
+    retention: [
+      { title:'الحركة البصرية', body:'قطع لقطة أو نص متحرك كل 3–5 ثوانٍ. المشاهد الثابتة تقتل معدل الاحتفاظ.' },
+      { title:'توقيت الهوك', body:'عرض القيمة الجوهري أو عبارة صادمة خلال أول 10–15 ثانية.' },
+      { title:'قاعدة 30 فيديو', body:'انشر 30+ فيديو كحد أدنى لتدريب الخوارزمية على جمهورك المستهدف.' }
+    ],
+    sopTitle: 'إجراءات التشغيل القياسية',
+    sops: [
+      { title:'SOP كاتب السيناريو', body:'1,500–1,800 كلمة · 48 ساعة تسليم · الهيكل: <span style="color:#34d399;">هوك → سيناريو → إيمان → CTA</span>' },
+      { title:'SOP المحرر', body:'Frame.io للمراجعات · إيقاع سينمائي · تصميم صوتي عالي الجودة · قطعة كل 3–5 ثوانٍ' },
+      { title:'جدول التجميع', body:'تُجمَّع السكريبتات والأصوات والمونتاجات مسبقاً بـ 2–4 أسابيع للحفاظ على الانتظام.' },
+      { title:'مرشح التوظيف', body:'متخصصو Upwork/Fiverr فقط. يجب أن يمتلك كتّاب السيناريو معرفة مالية.' }
+    ]
+  }
+};
+
+// ─── TASK DATA ────────────────────────────────────────────────────────────────
 const TASKS = {
-  setup: [
-    { id:'s1', text:'Choose channel niche (AI Investing, Debt Architecture, Creator Tax, Senior Longevity, or Fintech Security)', tip:'Higher CPM niches = higher advertiser competition. Debt Architecture offers $20–50 CPM.' },
-    { id:'s2', text:'Finalize channel name using Niche + Personality Blend or Authority-First formula', tip:'E.g. "Debt Architect" or "The Nomad Investor" — short, punchy, keyword-rich.' },
-    { id:'s3', text:'Define brand color palette (deep blue, forest green, or charcoal gray)' },
-    { id:'s4', text:'Create channel logo and banner (clean sans-serif typography)', tip:'Banner must communicate value prop in under 5 seconds.' },
-    { id:'s5', text:'Write channel description with primary keywords embedded' },
-    { id:'s6', text:'Set up YouTube channel and verify with phone number' },
-    { id:'s7', text:'Enable 2-Step Verification (2FA) — mandatory for YouTube Partner Program 2026' },
-    { id:'s8', text:'Create channel trailer (60–90 sec) communicating unique value proposition' },
-    { id:'s9', text:'Set up consistent thumbnail template (brand colors, typography)' },
-    { id:'s10', text:'Create social media placeholders (Twitter/X, Instagram) with matching branding' },
+  en: {
+    setup: [
+      { id:'s1', text:'Choose channel niche (AI Investing, Debt Architecture, Creator Tax, Senior Longevity, or Fintech Security)', tip:'Higher CPM niches = higher advertiser competition. Debt Architecture offers $20–50 CPM.' },
+      { id:'s2', text:'Finalize channel name using Niche + Personality Blend or Authority-First formula', tip:'E.g. "Debt Architect" or "The Nomad Investor" — short, punchy, keyword-rich.' },
+      { id:'s3', text:'Define brand color palette (deep blue, forest green, or charcoal gray)' },
+      { id:'s4', text:'Create channel logo and banner (clean sans-serif typography)', tip:'Banner must communicate value prop in under 5 seconds.' },
+      { id:'s5', text:'Write channel description with primary keywords embedded' },
+      { id:'s6', text:'Set up YouTube channel and verify with phone number' },
+      { id:'s7', text:'Enable 2-Step Verification (2FA) — mandatory for YouTube Partner Program 2026' },
+      { id:'s8', text:'Create channel trailer (60–90 sec) communicating unique value proposition' },
+      { id:'s9', text:'Set up consistent thumbnail template (brand colors, typography)' },
+      { id:'s10', text:'Create social media placeholders (Twitter/X, Instagram) with matching branding' }
+    ],
+    tech: [
+      { id:'t1', text:'Sign up for ElevenLabs — set up Professional Voice Clone (PVC)', tip:'Audio quality is the #1 retention factor for faceless channels.' },
+      { id:'t2', text:'Set up ChatGPT (GPT-4o/5) for creative hooks and AIDA-framework scripts' },
+      { id:'t3', text:'Set up Claude for analytical depth and long-form financial explanations' },
+      { id:'t4', text:'Set up Perplexity/Gemini for real-time 2026 market data and regulatory research' },
+      { id:'t5', text:'Sign up for InVideo AI or Pictory for Script-to-Video automation', tip:'Reduces 4–8h of editing to under 60 minutes.' },
+      { id:'t6', text:'Install Descript for text-based audio-visual editing and filler word removal' },
+      { id:'t7', text:'Set up OpusClip for automated Shorts repurposing from long-form content' },
+      { id:'t8', text:'Set up Flourish or Datawrapper for animated storytelling charts' },
+      { id:'t9', text:'Test Julius AI for automated financial dataset visualization' },
+      { id:'t10', text:'Subscribe to Artgrid or Storyblocks for licensed royalty-free footage' },
+      { id:'t11', text:'Set up VidIQ or OutlierKit for keyword validation and outlier topic research' }
+    ],
+    growth: [
+      { id:'g1', text:'Identify 10 "Outlier" video topics using VidIQ/OutlierKit that overperform in niche' },
+      { id:'g2', text:'Produce first 5 long-form videos (15–20 min) using Hook → Scenario → Insight → CTA structure' },
+      { id:'g3', text:'Create 4 Shorts from each long-form video as high-impact teasers', tip:'Platform averages 200B daily Shorts views — biggest discovery mechanism.' },
+      { id:'g4', text:'Apply the "Compression Formula" to all titles: e.g. "Learn Every Tax Loophole in 12 Minutes"' },
+      { id:'g5', text:'Use pinned comments in Shorts to funnel traffic to long-form authority content' },
+      { id:'g6', text:'Implement pattern interrupt hooks in first 3 seconds of every Short' },
+      { id:'g7', text:'Ensure every video frame has motion, kinetic text, or stock cut every 3–5 seconds' },
+      { id:'g8', text:'Add background music at narrative-enhancing level (not overwhelming narration)' },
+      { id:'g9', text:'Publish 30 videos minimum to train the algorithm on target audience' },
+      { id:'g10', text:'Analyze retention curves in YouTube Analytics — identify and fix drop-off points' },
+      { id:'g11', text:'Target 8+ minute video length to unlock mid-roll ad placements (3x RPM boost)' }
+    ],
+    scale: [
+      { id:'sc1', text:'Build content batching system (2–4 weeks of scripts/edits in advance)' },
+      { id:'sc2', text:'Hire scriptwriter on Upwork with finance domain knowledge ($2K/mo revenue threshold)' },
+      { id:'sc3', text:'Hire video editor with Frame.io workflow and cinematic pacing mandate' },
+      { id:'sc4', text:'Create written SOP documents for script, voiceover, editing, and upload workflows' },
+      { id:'sc5', text:'Launch Discord community with free/premium tiers and automated role bots' },
+      { id:'sc6', text:'Start Substack newsletter (e.g. weekly AI investing tools report)' },
+      { id:'sc7', text:'Conduct monthly community polls and interviews to fuel content calendar' },
+      { id:'sc8', text:'Shift owner role to editorial oversight: brand consistency, fact-checking, compliance' },
+      { id:'sc9', text:'Implement mandatory fact-checking SOP for all tax/investment-related scripts' },
+      { id:'sc10', text:'Apply for YouTube Partner Program (1K subs + 4K watch hours or 10M Shorts views)' }
+    ]
+  },
+  fr: {
+    setup: [
+      { id:'s1', text:'Choisir la niche (IA Investing, Architecture de la Dette, Fiscalité Créateur, Longévité Senior, ou Sécurité Fintech)', tip:'Les niches à CPM élevé = plus de concurrence publicitaire. Architecture de la Dette offre 20–50$ de CPM.' },
+      { id:'s2', text:'Finaliser le nom de la chaîne avec la formule Niche + Personnalité ou Autorité d\'abord', tip:'Ex. "Debt Architect" ou "The Nomad Investor" — court, percutant, riche en mots-clés.' },
+      { id:'s3', text:'Définir la palette de couleurs de marque (bleu profond, vert forêt ou gris anthracite)' },
+      { id:'s4', text:'Créer le logo et la bannière de la chaîne (typographie sans-serif épurée)', tip:'La bannière doit communiquer la proposition de valeur en moins de 5 secondes.' },
+      { id:'s5', text:'Rédiger la description de la chaîne avec les mots-clés principaux intégrés' },
+      { id:'s6', text:'Créer la chaîne YouTube et vérifier avec un numéro de téléphone' },
+      { id:'s7', text:'Activer la vérification en 2 étapes (2FA) — obligatoire pour le Programme Partenaire YouTube 2026' },
+      { id:'s8', text:'Créer la bande-annonce de la chaîne (60–90 sec) communiquant la proposition de valeur unique' },
+      { id:'s9', text:'Mettre en place un modèle de miniature cohérent (couleurs de marque, typographie)' },
+      { id:'s10', text:'Créer des espaces réservés sur les réseaux sociaux (Twitter/X, Instagram) avec une identité visuelle cohérente' }
+    ],
+    tech: [
+      { id:'t1', text:'S\'inscrire à ElevenLabs — configurer le Clone de Voix Professionnel (PVC)', tip:'La qualité audio est le facteur de rétention n°1 pour les chaînes sans visage.' },
+      { id:'t2', text:'Configurer ChatGPT (GPT-4o/5) pour des hooks créatifs et des scripts basés sur le cadre AIDA' },
+      { id:'t3', text:'Configurer Claude pour la profondeur analytique et les explications financières longues' },
+      { id:'t4', text:'Configurer Perplexity/Gemini pour les données de marché 2026 et la recherche réglementaire en temps réel' },
+      { id:'t5', text:'S\'inscrire à InVideo AI ou Pictory pour l\'automatisation Script-vers-Vidéo', tip:'Réduit 4–8h de montage à moins de 60 minutes.' },
+      { id:'t6', text:'Installer Descript pour l\'édition audio-visuelle basée sur le texte et la suppression des mots de remplissage' },
+      { id:'t7', text:'Configurer OpusClip pour la réutilisation automatisée en Shorts à partir du contenu long format' },
+      { id:'t8', text:'Configurer Flourish ou Datawrapper pour les graphiques animés de narration de données' },
+      { id:'t9', text:'Tester Julius AI pour la visualisation automatisée de données financières' },
+      { id:'t10', text:'S\'abonner à Artgrid ou Storyblocks pour des séquences vidéo libres de droits' },
+      { id:'t11', text:'Configurer VidIQ ou OutlierKit pour la validation des mots-clés et la recherche de sujets outlier' }
+    ],
+    growth: [
+      { id:'g1', text:'Identifier 10 sujets vidéo "Outlier" avec VidIQ/OutlierKit qui surperforment dans la niche' },
+      { id:'g2', text:'Produire les 5 premières vidéos longues (15–20 min) avec la structure Hook → Scénario → Insight → CTA' },
+      { id:'g3', text:'Créer 4 Shorts à partir de chaque vidéo longue comme teasers à fort impact', tip:'La plateforme enregistre 200 milliards de vues quotidiennes sur les Shorts — principal mécanisme de découverte.' },
+      { id:'g4', text:'Appliquer la "Formule de Compression" à tous les titres : ex. "Apprenez chaque Avantage Fiscal en 12 Minutes"' },
+      { id:'g5', text:'Utiliser des commentaires épinglés dans les Shorts pour rediriger vers le contenu long format' },
+      { id:'g6', text:'Implémenter des hooks de rupture de schéma dans les 3 premières secondes de chaque Short' },
+      { id:'g7', text:'S\'assurer que chaque plan vidéo contient du mouvement, du texte cinétique ou une coupe toutes les 3–5s' },
+      { id:'g8', text:'Ajouter de la musique de fond à un niveau narratif (sans dominer la narration)' },
+      { id:'g9', text:'Publier 30 vidéos minimum pour entraîner l\'algorithme sur le public cible' },
+      { id:'g10', text:'Analyser les courbes de rétention dans YouTube Analytics — identifier et corriger les points de décrochage' },
+      { id:'g11', text:'Cibler une durée de vidéo de 8+ minutes pour débloquer les emplacements mid-roll (3x boost RPM)' }
+    ],
+    scale: [
+      { id:'sc1', text:'Construire un système de traitement du contenu (2–4 semaines de scripts/montages à l\'avance)' },
+      { id:'sc2', text:'Engager un scénariste sur Upwork avec des connaissances en finance (seuil de revenus 2K$/mois)' },
+      { id:'sc3', text:'Engager un monteur vidéo avec le flux de travail Frame.io et le mandat de rythme cinématique' },
+      { id:'sc4', text:'Créer des documents SOP écrits pour les workflows de script, voix, montage et publication' },
+      { id:'sc5', text:'Lancer une communauté Discord avec des niveaux gratuits/premium et des bots de rôle automatisés' },
+      { id:'sc6', text:'Démarrer une newsletter Substack (ex. rapport hebdomadaire sur les outils d\'investissement IA)' },
+      { id:'sc7', text:'Mener des sondages et interviews communautaires mensuels pour alimenter le calendrier de contenu' },
+      { id:'sc8', text:'Passer au rôle de supervision éditoriale : cohérence de marque, vérification des faits, conformité' },
+      { id:'sc9', text:'Mettre en place un SOP de vérification des faits obligatoire pour tous les scripts liés à la fiscalité/investissement' },
+      { id:'sc10', text:'Postuler au Programme Partenaire YouTube (1K abonnés + 4K heures de visionnage ou 10M vues Shorts)' }
+    ]
+  },
+  ar: {
+    setup: [
+      { id:'s1', text:'اختيار مجال القناة (الاستثمار بالذكاء الاصطناعي، هندسة الديون، ضرائب المبدعين، ثروة كبار السن، أو أمان الفينتك)', tip:'المجالات ذات CPM المرتفع = منافسة أعلى من المعلنين. هندسة الديون تقدم $20–50 CPM.' },
+      { id:'s2', text:'تحديد اسم القناة باستخدام صيغة المجال + الشخصية أو السلطة أولاً', tip:'مثل: "مهندس الديون" أو "المستثمر الرحّال" — قصير، مؤثر، غني بالكلمات المفتاحية.' },
+      { id:'s3', text:'تحديد لوحة الألوان (أزرق داكن، أخضر الغابة، أو رمادي فحمي)' },
+      { id:'s4', text:'إنشاء شعار وبانر القناة (خط sans-serif نظيف)', tip:'يجب أن يوصل البانر عرض القيمة في أقل من 5 ثوانٍ.' },
+      { id:'s5', text:'كتابة وصف القناة مع تضمين الكلمات المفتاحية الأساسية' },
+      { id:'s6', text:'إنشاء قناة يوتيوب والتحقق برقم الهاتف' },
+      { id:'s7', text:'تفعيل التحقق بخطوتين (2FA) — إلزامي لبرنامج شراكة يوتيوب 2026' },
+      { id:'s8', text:'إنشاء مقطع تشويقي للقناة (60–90 ثانية) يوضح عرض القيمة الفريد' },
+      { id:'s9', text:'إعداد قالب مصغرات موحد (ألوان العلامة التجارية، الخطوط)' },
+      { id:'s10', text:'إنشاء حضور على وسائل التواصل الاجتماعي (تويتر/إكس، إنستغرام) بهوية بصرية متسقة' }
+    ],
+    tech: [
+      { id:'t1', text:'التسجيل في ElevenLabs — إعداد نسخ الصوت الاحترافي', tip:'جودة الصوت هي عامل الاحتفاظ رقم 1 للقنوات بدون وجه.' },
+      { id:'t2', text:'إعداد ChatGPT (GPT-4o/5) للهوكس الإبداعية والسكريبتات' },
+      { id:'t3', text:'إعداد Claude للتحليل العميق والشروحات المالية المطولة' },
+      { id:'t4', text:'إعداد Perplexity/Gemini لبيانات السوق الفورية لعام 2026 والبحث التنظيمي' },
+      { id:'t5', text:'التسجيل في InVideo AI أو Pictory لأتمتة تحويل النص إلى فيديو', tip:'يقلل 4–8 ساعات من التحرير إلى أقل من 60 دقيقة.' },
+      { id:'t6', text:'تثبيت Descript للتحرير الصوتي والمرئي القائم على النص وإزالة كلمات الحشو' },
+      { id:'t7', text:'إعداد OpusClip لإعادة توظيف المحتوى في Shorts تلقائياً' },
+      { id:'t8', text:'إعداد Flourish أو Datawrapper للرسوم البيانية المتحركة للبيانات المالية' },
+      { id:'t9', text:'اختبار Julius AI لتصور مجموعات البيانات المالية تلقائياً' },
+      { id:'t10', text:'الاشتراك في Artgrid أو Storyblocks للحصول على لقطات خالية من حقوق الملكية' },
+      { id:'t11', text:'إعداد VidIQ أو OutlierKit للتحقق من صحة الكلمات المفتاحية وبحث الموضوعات المتفوقة' }
+    ],
+    growth: [
+      { id:'g1', text:'تحديد 10 موضوعات فيديو "متفوقة" باستخدام VidIQ/OutlierKit تتفوق أداءً في المجال' },
+      { id:'g2', text:'إنتاج أول 5 مقاطع فيديو طويلة (15–20 دقيقة) بهيكل هوك → سيناريو → إيمان → CTA' },
+      { id:'g3', text:'إنشاء 4 مقاطع Shorts من كل فيديو طويل كإعلانات تشويقية عالية التأثير', tip:'المنصة تسجل 200 مليار مشاهدة يومية على Shorts — أكبر آلية اكتشاف.' },
+      { id:'g4', text:'تطبيق "صيغة الضغط" على جميع العناوين: مثل "تعلّم كل ثغرة ضريبية في 12 دقيقة"' },
+      { id:'g5', text:'استخدام التعليقات المثبتة في Shorts لتوجيه الحركة إلى المحتوى الطويل' },
+      { id:'g6', text:'تنفيذ هوكس مقاطعة النمط في أول 3 ثوانٍ من كل Short' },
+      { id:'g7', text:'التأكد من وجود حركة أو نص حركي أو قطعة في كل إطار فيديو كل 3–5 ثوانٍ' },
+      { id:'g8', text:'إضافة موسيقى خلفية بمستوى يعزز السرد (دون أن يطغى على التعليق الصوتي)' },
+      { id:'g9', text:'نشر 30 فيديو على الأقل لتدريب الخوارزمية على الجمهور المستهدف' },
+      { id:'g10', text:'تحليل منحنيات الاحتفاظ في YouTube Analytics — تحديد نقاط الانسحاب وإصلاحها' },
+      { id:'g11', text:'استهداف مدة فيديو 8+ دقائق لفتح مواضع الإعلانات المتوسطة (تعزيز RPM بمقدار 3x)' }
+    ],
+    scale: [
+      { id:'sc1', text:'بناء نظام تجميع المحتوى (2–4 أسابيع من السكريبتات والمونتاج مسبقاً)' },
+      { id:'sc2', text:'توظيف كاتب سيناريو على Upwork ذو معرفة مالية (عتبة الإيراد $2K شهرياً)' },
+      { id:'sc3', text:'توظيف محرر فيديو مع سير عمل Frame.io وانتداب الإيقاع السينمائي' },
+      { id:'sc4', text:'إنشاء وثائق SOP مكتوبة لسير عمل السكريبت والصوت والمونتاج والنشر' },
+      { id:'sc5', text:'إطلاق مجتمع Discord بمستويات مجانية ومدفوعة وبوتات أدوار تلقائية' },
+      { id:'sc6', text:'بدء نشرة إخبارية Substack (مثل: تقرير أسبوعي عن أدوات الاستثمار بالذكاء الاصطناعي)' },
+      { id:'sc7', text:'إجراء استطلاعات ومقابلات مجتمعية شهرية لتغذية تقويم المحتوى' },
+      { id:'sc8', text:'الانتقال إلى دور الإشراف التحريري: اتساق العلامة التجارية، التحقق من الحقائق، الامتثال' },
+      { id:'sc9', text:'تنفيذ SOP التحقق من الحقائق الإلزامي لجميع السكريبتات المتعلقة بالضرائب/الاستثمار' },
+      { id:'sc10', text:'التقدم لبرنامج شراكة يوتيوب (1K مشترك + 4K ساعة مشاهدة أو 10M مشاهدة Shorts)' }
+    ]
+  }
+};
+
+// ─── STATIC DATA (language-aware) ─────────────────────────────────────────────
+const TOOLS = {
+  en: [
+    { name:'ElevenLabs', category:'Voiceover', desc:'Professional Voice Cloning & natural narration with emotional nuance', cost:'$5–$22/mo', url:'https://elevenlabs.io', icon:'mic' },
+    { name:'ChatGPT', category:'Scriptwriting', desc:'Creative hooks, AIDA framework storytelling, and engaging narratives', cost:'Free–$20/mo', url:'https://chat.openai.com', icon:'pen-tool' },
+    { name:'Claude', category:'Scriptwriting', desc:'Analytical depth, long-form consistency, and complex financial explanations', cost:'Free–$20/mo', url:'https://claude.ai', icon:'brain' },
+    { name:'Perplexity', category:'Research', desc:'Real-time 2026 market data, interest rates, and regulatory updates', cost:'Free–$20/mo', url:'https://perplexity.ai', icon:'search' },
+    { name:'InVideo AI', category:'Video Editing', desc:'Script-to-Video automation — 4–8h editing reduced to under 60 minutes', cost:'$19–$25/mo', url:'https://invideo.io', icon:'video' },
+    { name:'OpusClip', category:'Shorts', desc:'AI identifies viral moments from long-form and auto-creates Shorts', cost:'$9–$29/mo', url:'https://opus.pro', icon:'scissors' },
+    { name:'Descript', category:'Editing', desc:'Text-based editor — remove filler words by editing the transcript', cost:'Free–$24/mo', url:'https://descript.com', icon:'edit-3' },
+    { name:'Flourish', category:'Data Viz', desc:'Animated storytelling charts for dense financial data segments', cost:'Free–$20/mo', url:'https://flourish.studio', icon:'bar-chart' },
+    { name:'VidIQ', category:'SEO', desc:'Keyword validation, outlier topic research, and competitor analysis', cost:'Free–$49/mo', url:'https://vidiq.com', icon:'trending-up' },
+    { name:'Storyblocks', category:'Assets', desc:'Licensed royalty-free stock footage and music — avoid Content ID strikes', cost:'~$15/mo', url:'https://storyblocks.com', icon:'film' },
+    { name:'Julius AI', category:'Data Viz', desc:'Upload raw financial datasets and auto-generate visual insights', cost:'Free–$20/mo', url:'https://julius.ai', icon:'database' },
+    { name:'Frame.io', category:'Collaboration', desc:'Video review and revision cycles for remote editor teams', cost:'Free–$15/mo', url:'https://frame.io', icon:'git-pull-request' }
   ],
-  tech: [
-    { id:'t1', text:'Sign up for ElevenLabs — set up Professional Voice Clone (PVC)', tip:'Audio quality is the #1 retention factor for faceless channels.' },
-    { id:'t2', text:'Set up ChatGPT (GPT-4o/5) for creative hooks and AIDA-framework scripts' },
-    { id:'t3', text:'Set up Claude for analytical depth and long-form financial explanations' },
-    { id:'t4', text:'Set up Perplexity/Gemini for real-time 2026 market data and regulatory research' },
-    { id:'t5', text:'Sign up for InVideo AI or Pictory for Script-to-Video automation', tip:'Reduces 4–8h of editing to under 60 minutes.' },
-    { id:'t6', text:'Install Descript for text-based audio-visual editing and filler word removal' },
-    { id:'t7', text:'Set up OpusClip for automated Shorts repurposing from long-form content' },
-    { id:'t8', text:'Set up Flourish or Datawrapper for animated storytelling charts' },
-    { id:'t9', text:'Test Julius AI for automated financial dataset visualization' },
-    { id:'t10', text:'Subscribe to Artgrid or Storyblocks for licensed royalty-free footage' },
-    { id:'t11', text:'Set up VidIQ or OutlierKit for keyword validation and outlier topic research' },
+  fr: [
+    { name:'ElevenLabs', category:'Voix', desc:'Clonage vocal professionnel & narration naturelle avec nuance émotionnelle', cost:'5–22$/mois', url:'https://elevenlabs.io', icon:'mic' },
+    { name:'ChatGPT', category:'Scénarisation', desc:'Hooks créatifs, storytelling AIDA et narrations engageantes', cost:'Gratuit–20$/mois', url:'https://chat.openai.com', icon:'pen-tool' },
+    { name:'Claude', category:'Scénarisation', desc:'Profondeur analytique, cohérence long format et explications financières complexes', cost:'Gratuit–20$/mois', url:'https://claude.ai', icon:'brain' },
+    { name:'Perplexity', category:'Recherche', desc:'Données de marché 2026 en temps réel, taux d\'intérêt et mises à jour réglementaires', cost:'Gratuit–20$/mois', url:'https://perplexity.ai', icon:'search' },
+    { name:'InVideo AI', category:'Montage', desc:'Automatisation Script-vers-Vidéo — 4–8h de montage réduit à moins de 60 minutes', cost:'19–25$/mois', url:'https://invideo.io', icon:'video' },
+    { name:'OpusClip', category:'Shorts', desc:'L\'IA identifie les moments viraux et crée automatiquement des Shorts', cost:'9–29$/mois', url:'https://opus.pro', icon:'scissors' },
+    { name:'Descript', category:'Montage', desc:'Éditeur basé sur le texte — supprimer les mots de remplissage en éditant la transcription', cost:'Gratuit–24$/mois', url:'https://descript.com', icon:'edit-3' },
+    { name:'Flourish', category:'Visualisation', desc:'Graphiques animés pour les segments de données financières denses', cost:'Gratuit–20$/mois', url:'https://flourish.studio', icon:'bar-chart' },
+    { name:'VidIQ', category:'SEO', desc:'Validation de mots-clés, recherche de sujets outlier et analyse des concurrents', cost:'Gratuit–49$/mois', url:'https://vidiq.com', icon:'trending-up' },
+    { name:'Storyblocks', category:'Assets', desc:'Séquences et musique libres de droits — évitez les strikes Content ID', cost:'~15$/mois', url:'https://storyblocks.com', icon:'film' },
+    { name:'Julius AI', category:'Visualisation', desc:'Uploadez des données financières brutes et générez automatiquement des insights visuels', cost:'Gratuit–20$/mois', url:'https://julius.ai', icon:'database' },
+    { name:'Frame.io', category:'Collaboration', desc:'Révisions vidéo et cycles de retours pour les équipes de montage à distance', cost:'Gratuit–15$/mois', url:'https://frame.io', icon:'git-pull-request' }
   ],
-  growth: [
-    { id:'g1', text:'Identify 10 "Outlier" video topics using VidIQ/OutlierKit that overperform in niche' },
-    { id:'g2', text:'Produce first 5 long-form videos (15–20 min) using the Hook → Scenario → Insight → CTA structure' },
-    { id:'g3', text:'Create 4 Shorts from each long-form video as high-impact teasers', tip:'Platform averages 200B daily Shorts views — biggest discovery mechanism.' },
-    { id:'g4', text:'Apply the "Compression Formula" to all titles: e.g. "Learn Every Tax Loophole in 12 Minutes"' },
-    { id:'g5', text:'Use pinned comments in Shorts to funnel traffic to long-form authority content' },
-    { id:'g6', text:'Implement pattern interrupt hooks in first 3 seconds of every Short' },
-    { id:'g7', text:'Ensure every video frame has motion, kinetic text, or stock cut every 3–5 seconds' },
-    { id:'g8', text:'Add background music at narrative-enhancing level (not overwhelming narration)' },
-    { id:'g9', text:'Publish 30 videos minimum to train the algorithm on target audience' },
-    { id:'g10', text:'Analyze retention curves in YouTube Analytics — identify and fix drop-off points' },
-    { id:'g11', text:'Target 8+ minute video length to unlock mid-roll ad placements (3x RPM boost)' },
-  ],
-  scale: [
-    { id:'sc1', text:'Build content batching system (2–4 weeks of scripts/edits in advance)' },
-    { id:'sc2', text:'Hire scriptwriter on Upwork with finance domain knowledge ($2K/mo revenue threshold)' },
-    { id:'sc3', text:'Hire video editor with Frame.io workflow and cinematic pacing mandate' },
-    { id:'sc4', text:'Create written SOP documents for script, voiceover, editing, and upload workflows' },
-    { id:'sc5', text:'Launch Discord community with free/premium tiers and automated role bots' },
-    { id:'sc6', text:'Start Substack newsletter (e.g. weekly AI investing tools report)' },
-    { id:'sc7', text:'Conduct monthly community polls and interviews to fuel content calendar' },
-    { id:'sc8', text:'Shift owner role to editorial oversight: brand consistency, fact-checking, compliance' },
-    { id:'sc9', text:'Implement mandatory fact-checking SOP for all tax/investment-related scripts' },
-    { id:'sc10', text:'Apply for YouTube Partner Program (1K subs + 4K watch hours or 10M Shorts views)' },
+  ar: [
+    { name:'ElevenLabs', category:'التصويت', desc:'استنساخ الصوت الاحترافي والسرد الطبيعي بنبرة عاطفية', cost:'$5–$22/شهر', url:'https://elevenlabs.io', icon:'mic' },
+    { name:'ChatGPT', category:'كتابة السيناريو', desc:'هوكس إبداعية، سرد قصصي بإطار AIDA، وروايات جذابة', cost:'مجاني–$20/شهر', url:'https://chat.openai.com', icon:'pen-tool' },
+    { name:'Claude', category:'كتابة السيناريو', desc:'عمق تحليلي، اتساق طويل الأمد، وشروحات مالية معقدة', cost:'مجاني–$20/شهر', url:'https://claude.ai', icon:'brain' },
+    { name:'Perplexity', category:'البحث', desc:'بيانات السوق الفورية لعام 2026، أسعار الفائدة، والتحديثات التنظيمية', cost:'مجاني–$20/شهر', url:'https://perplexity.ai', icon:'search' },
+    { name:'InVideo AI', category:'تحرير الفيديو', desc:'أتمتة تحويل النص إلى فيديو — تحرير 4–8 ساعات في أقل من 60 دقيقة', cost:'$19–$25/شهر', url:'https://invideo.io', icon:'video' },
+    { name:'OpusClip', category:'Shorts', desc:'الذكاء الاصطناعي يحدد اللحظات الفيروسية ويُنشئ Shorts تلقائياً', cost:'$9–$29/شهر', url:'https://opus.pro', icon:'scissors' },
+    { name:'Descript', category:'التحرير', desc:'محرر قائم على النص — احذف كلمات الحشو عبر تحرير النص المكتوب', cost:'مجاني–$24/شهر', url:'https://descript.com', icon:'edit-3' },
+    { name:'Flourish', category:'تصور البيانات', desc:'رسوم بيانية متحركة لمقاطع البيانات المالية الكثيفة', cost:'مجاني–$20/شهر', url:'https://flourish.studio', icon:'bar-chart' },
+    { name:'VidIQ', category:'SEO', desc:'التحقق من صحة الكلمات المفتاحية، بحث الموضوعات المتفوقة، وتحليل المنافسين', cost:'مجاني–$49/شهر', url:'https://vidiq.com', icon:'trending-up' },
+    { name:'Storyblocks', category:'الأصول', desc:'لقطات وموسيقى مرخصة خالية من حقوق الملكية — تجنب ضربات Content ID', cost:'~$15/شهر', url:'https://storyblocks.com', icon:'film' },
+    { name:'Julius AI', category:'تصور البيانات', desc:'ارفع مجموعات البيانات المالية الخام وأنشئ رؤى مرئية تلقائياً', cost:'مجاني–$20/شهر', url:'https://julius.ai', icon:'database' },
+    { name:'Frame.io', category:'التعاون', desc:'مراجعات الفيديو ودورات المراجعة للمحررين عن بُعد', cost:'مجاني–$15/شهر', url:'https://frame.io', icon:'git-pull-request' }
   ]
 };
 
-const TOOLS = [
-  { name:'ElevenLabs', category:'Voiceover', desc:'Professional Voice Cloning & natural narration with emotional nuance', cost:'$5–$22/mo', url:'https://elevenlabs.io', icon:'mic' },
-  { name:'ChatGPT', category:'Scriptwriting', desc:'Creative hooks, AIDA framework storytelling, and engaging narratives', cost:'Free–$20/mo', url:'https://chat.openai.com', icon:'pen-tool' },
-  { name:'Claude', category:'Scriptwriting', desc:'Analytical depth, long-form consistency, and complex financial explanations', cost:'Free–$20/mo', url:'https://claude.ai', icon:'brain' },
-  { name:'Perplexity', category:'Research', desc:'Real-time 2026 market data, interest rates, and regulatory updates', cost:'Free–$20/mo', url:'https://perplexity.ai', icon:'search' },
-  { name:'InVideo AI', category:'Video Editing', desc:'Script-to-Video automation — 4–8h editing reduced to under 60 minutes', cost:'$19–$25/mo', url:'https://invideo.io', icon:'video' },
-  { name:'OpusClip', category:'Shorts', desc:'AI identifies viral moments from long-form and auto-creates Shorts', cost:'$9–$29/mo', url:'https://opus.pro', icon:'scissors' },
-  { name:'Descript', category:'Editing', desc:'Text-based editor — remove filler words by editing the transcript', cost:'Free–$24/mo', url:'https://descript.com', icon:'edit-3' },
-  { name:'Flourish', category:'Data Viz', desc:'Animated storytelling charts for dense financial data segments', cost:'Free–$20/mo', url:'https://flourish.studio', icon:'bar-chart' },
-  { name:'VidIQ', category:'SEO', desc:'Keyword validation, outlier topic research, and competitor analysis', cost:'Free–$49/mo', url:'https://vidiq.com', icon:'trending-up' },
-  { name:'Storyblocks', category:'Assets', desc:'Licensed royalty-free stock footage and music — avoid Content ID strikes', cost:'~$15/mo', url:'https://storyblocks.com', icon:'film' },
-  { name:'Julius AI', category:'Data Viz', desc:'Upload raw financial datasets and auto-generate visual insights', cost:'Free–$20/mo', url:'https://julius.ai', icon:'database' },
-  { name:'Frame.io', category:'Collaboration', desc:'Video review and revision cycles for remote editor teams', cost:'Free–$15/mo', url:'https://frame.io', icon:'git-pull-request' },
-];
-
-const NICHES = [
-  { name:'Debt Architecture', cpm:'$20–$50', growth:'High/Stable', driver:'Lead Generation', badge:'badge-green', desc:'Methodical debt repayment systems — $350/lead for loan referrals. Year-round demand cycle.' },
-  { name:'AI Investing', cpm:'$15–$30', growth:'Exponential', driver:'Fintech Subscriptions', badge:'badge-amber', desc:'Demystifying AI-driven investing tools, robo-advisors, and algorithmic portfolio management.' },
-  { name:'Creator Tax & Compliance', cpm:'$15–$30', growth:'14.1% CAGR', driver:'B2B SaaS/Consulting', badge:'badge-blue', desc:'S-Corp transitions, international tax arbitrage, digital nomad finances. CPC for "business insurance" up to $79.' },
-  { name:'Senior Wealth Longevity', cpm:'$9–$12', growth:'19x Expansion', driver:'Insurance/Health Tech', badge:'badge-green', desc:'Medicare optimization, long-term care funding, intergenerational wealth transfer. Low competition.' },
-  { name:'Fintech Security', cpm:'$10–$30', growth:'High', driver:'Digital Bank Acquisitions', badge:'badge-amber', desc:'Digital banking security, virtual cards, identity theft protection. Targets unbanked/underbanked populations.' },
-];
+const NICHES = {
+  en: [
+    { name:'Debt Architecture', cpm:'$20–$50', growth:'High/Stable', driver:'Lead Generation', desc:'Methodical debt repayment systems — $350/lead for loan referrals. Year-round demand cycle.' },
+    { name:'AI Investing', cpm:'$15–$30', growth:'Exponential', driver:'Fintech Subscriptions', desc:'Demystifying AI-driven investing tools, robo-advisors, and algorithmic portfolio management.' },
+    { name:'Creator Tax & Compliance', cpm:'$15–$30', growth:'14.1% CAGR', driver:'B2B SaaS/Consulting', desc:'S-Corp transitions, international tax arbitrage, digital nomad finances. CPC for "business insurance" up to $79.' },
+    { name:'Senior Wealth Longevity', cpm:'$9–$12', growth:'19x Expansion', driver:'Insurance/Health Tech', desc:'Medicare optimization, long-term care funding, intergenerational wealth transfer. Low competition.' },
+    { name:'Fintech Security', cpm:'$10–$30', growth:'High', driver:'Digital Bank Acquisitions', desc:'Digital banking security, virtual cards, identity theft protection. Targets unbanked/underbanked populations.' }
+  ],
+  fr: [
+    { name:'Architecture de la Dette', cpm:'20–50$', growth:'Élevé/Stable', driver:'Génération de Leads', desc:'Systèmes méthodiques de remboursement de dettes — 350$/lead pour les références de prêts. Demande annuelle.' },
+    { name:'Investissement IA', cpm:'15–30$', growth:'Exponentiel', driver:'Abonnements Fintech', desc:'Démystifier les outils d\'investissement IA, robo-advisors et gestion de portefeuille algorithmique.' },
+    { name:'Fiscalité & Conformité Créateur', cpm:'15–30$', growth:'14.1% CAGR', driver:'B2B SaaS/Conseil', desc:'Transitions S-Corp, arbitrage fiscal international, finances nomades digitaux. CPC "assurance professionnelle" jusqu\'à 79$.' },
+    { name:'Longévité Financière des Seniors', cpm:'9–12$', growth:'Expansion 19x', driver:'Assurance/HealthTech', desc:'Optimisation Medicare, financement des soins longue durée, transfert de richesse intergénérationnel. Faible concurrence.' },
+    { name:'Sécurité Fintech', cpm:'10–30$', growth:'Élevé', driver:'Acquisitions Banques Digitales', desc:'Sécurité bancaire numérique, cartes virtuelles, protection contre l\'usurpation d\'identité.' }
+  ],
+  ar: [
+    { name:'هندسة الديون', cpm:'$20–$50', growth:'مرتفع/مستقر', driver:'توليد العملاء', desc:'أنظمة منهجية لسداد الديون — $350/عميل لإحالات القروض. طلب على مدار السنة.' },
+    { name:'الاستثمار بالذكاء الاصطناعي', cpm:'$15–$30', growth:'أُسي', driver:'اشتراكات الفينتك', desc:'إزالة الغموض عن أدوات الاستثمار بالذكاء الاصطناعي، المستشارين الآليين، وإدارة المحافظ الخوارزمية.' },
+    { name:'ضرائب وامتثال المبدعين', cpm:'$15–$30', growth:'14.1% معدل نمو سنوي', driver:'B2B SaaS/استشارات', desc:'الانتقالات إلى S-Corp، التحكيم الضريبي الدولي، مالية الرحّالة الرقميين. CPC لـ"تأمين الأعمال" يصل إلى $79.' },
+    { name:'ثروة كبار السن وطول العمر', cpm:'$9–$12', growth:'توسع 19x', driver:'التأمين/HealthTech', desc:'تحسين Medicare، تمويل الرعاية طويلة الأمد، نقل الثروة بين الأجيال. منافسة منخفضة.' },
+    { name:'أمان الفينتك', cpm:'$10–$30', growth:'مرتفع', driver:'الاستحواذ على البنوك الرقمية', desc:'أمان الخدمات المصرفية الرقمية، البطاقات الافتراضية، الحماية من سرقة الهوية.' }
+  ]
+};
 
 const COMPETITORS = [
   { name:'MagnatesMedia', strategy:'Motion Graphics', hook:'Psychological Narrative', rev:'$30k–$50k+' },
   { name:'The Swedish Investor', strategy:'Whiteboard Animation', hook:'Replicable Blueprints', rev:'$15k–$25k' },
   { name:'Economics Explained', strategy:'Stock + Data Overlays', hook:'Macro-Authority', rev:'$20k–$40k' },
   { name:'Infographics Show', strategy:'2D Fast Animation', hook:'Curiosity Listicles', rev:'$100k–$300k' },
-  { name:'Fern', strategy:'3D Documentary', hook:'Investigative Mystery', rev:'$80k+' },
+  { name:'Fern', strategy:'3D Documentary', hook:'Investigative Mystery', rev:'$80k+' }
 ];
 
-const MONETIZE = [
-  { title:'AdSense / RPM', icon:'tv', items:['Target 8+ min videos for mid-roll ads (3x RPM vs short)','Finance niche avg RPM: $10–$50 depending on sub-niche','100K views = $700–$870 net AdSense profit','Debt Architecture niche: up to $50 RPM'] },
-  { title:'Affiliate Programs', icon:'link', items:['Banking signups (Chase, Chime, SoFi): $50–$100/user','Investing platforms (Acorns, eToro): $5–$50+/funded account','Loan referrals (LendingTree): $200–$350/lead','Credit cards (Bankrate, Amex): $100–$200/approval'] },
-  { title:'Digital Products', icon:'package', items:['Notion/Excel budget & investment tracker templates','High-ticket online courses (tax, investing strategies)','YouTube Shopping: tag affiliate products in-video (2026 feature)','Productivity dashboards tapping multi-billion dollar market'] },
-  { title:'Sponsorships', icon:'star', items:['B2B/SaaS partnerships: $15–$30 CPM for tutorial integrations','Finance brands pay premium for high-intent audiences','Faceless channels benefit from "unbiased expert" positioning','Brand Safety + Targeted Demographics = premium rates'] },
-];
+const MONETIZE = {
+  en: [
+    { title:'AdSense / RPM', icon:'tv', items:['Target 8+ min videos for mid-roll ads (3x RPM vs short)','Finance niche avg RPM: $10–$50 depending on sub-niche','100K views = $700–$870 net AdSense profit','Debt Architecture niche: up to $50 RPM'] },
+    { title:'Affiliate Programs', icon:'link', items:['Banking signups (Chase, Chime, SoFi): $50–$100/user','Investing platforms (Acorns, eToro): $5–$50+/funded account','Loan referrals (LendingTree): $200–$350/lead','Credit cards (Bankrate, Amex): $100–$200/approval'] },
+    { title:'Digital Products', icon:'package', items:['Notion/Excel budget & investment tracker templates','High-ticket online courses (tax, investing strategies)','YouTube Shopping: tag affiliate products in-video (2026 feature)','Productivity dashboards tapping multi-billion dollar market'] },
+    { title:'Sponsorships', icon:'star', items:['B2B/SaaS partnerships: $15–$30 CPM for tutorial integrations','Finance brands pay premium for high-intent audiences','Faceless channels benefit from "unbiased expert" positioning','Brand Safety + Targeted Demographics = premium rates'] }
+  ],
+  fr: [
+    { title:'AdSense / RPM', icon:'tv', items:['Cibler les vidéos 8+ min pour les annonces mid-roll (3x RPM)','RPM moyen niche finance : 10–50$ selon la sous-niche','100K vues = 700–870$ de profit AdSense net','Niche Architecture de la Dette : jusqu\'à 50$ RPM'] },
+    { title:'Programmes d\'Affiliation', icon:'link', items:['Inscriptions bancaires (Chase, Chime, SoFi) : 50–100$/utilisateur','Plateformes d\'investissement (Acorns, eToro) : 5–50$+/compte financé','Références de prêts (LendingTree) : 200–350$/lead','Cartes de crédit (Bankrate, Amex) : 100–200$/approbation'] },
+    { title:'Produits Numériques', icon:'package', items:['Modèles Notion/Excel de budget et suivi d\'investissement','Formations en ligne haut de gamme (fiscalité, stratégies d\'investissement)','YouTube Shopping : taguez des produits affiliés en vidéo (fonctionnalité 2026)','Tableaux de bord de productivité sur un marché multimilliardaire'] },
+    { title:'Partenariats', icon:'star', items:['Partenariats B2B/SaaS : 15–30$ CPM pour les intégrations tutoriels','Les marques financières paient premium pour les audiences à forte intention','Les chaînes sans visage bénéficient d\'un positionnement "expert impartial"','Sécurité de marque + démographie ciblée = tarifs premium'] }
+  ],
+  ar: [
+    { title:'AdSense / RPM', icon:'tv', items:['استهدف مقاطع 8+ دقائق للإعلانات المتوسطة (3x RPM)','متوسط RPM مجال المالية: $10–$50 حسب المجال الفرعي','100K مشاهدة = $700–$870 ربح صافي من AdSense','مجال هندسة الديون: يصل إلى $50 RPM'] },
+    { title:'برامج التابعين', icon:'link', items:['التسجيل في البنوك (Chase, Chime, SoFi): $50–$100/مستخدم','منصات الاستثمار (Acorns, eToro): $5–$50+/حساب ممول','إحالات القروض (LendingTree): $200–$350/عميل','بطاقات الائتمان (Bankrate, Amex): $100–$200/موافقة'] },
+    { title:'المنتجات الرقمية', icon:'package', items:['قوالب Notion/Excel لتتبع الميزانية والاستثمار','دورات تدريبية عبر الإنترنت عالية القيمة (ضرائب، استراتيجيات الاستثمار)','YouTube Shopping: تمييز المنتجات التابعة داخل الفيديو (ميزة 2026)','لوحات إنتاجية تستغل سوق متعدد المليارات'] },
+    { title:'الرعايات', icon:'star', items:['شراكات B2B/SaaS: $15–$30 CPM لتكاملات البرامج التعليمية','تدفع العلامات التجارية المالية أسعاراً مميزة للجماهير ذات النية العالية','القنوات بدون وجه تستفيد من تموضع "الخبير المحايد"','سلامة العلامة التجارية + الديموغرافيا المستهدفة = أسعار مميزة'] }
+  ]
+};
 
-const RISKS = [
-  { title:'Avoid Inauthentic Content Flag', icon:'alert-triangle', color:'#ef4444', items:['30% Modification Rule: at least 30% original thought per video','Stock footage must be "significantly changed" with narrative context','Disclose all synthetically generated realistic content (2026 law)','No "AI-generated spam" or lazy compilations — human-in-the-loop always'] },
-  { title:'Brand Safety & Advertiser Friendliness', icon:'shield-check', color:'#10b981', items:['No incendiary financial claims or "get-rich-quick" promises','Mandatory fact-checking phase in script SOP for tax/investment topics','Enable 2FA on all accounts — compromised accounts = permanent ban','Maintain compliance with regulated investment product disclosures'] },
-  { title:'Copyright & Content ID', icon:'copyright', color:'#fbbf24', items:['Only royalty-free music and footage (Artgrid, Storyblocks)','Transformative use: add commentary/educational value to third-party clips','2026 Content ID system is highly sophisticated — zero tolerance approach','Never reproduce third-party charts/graphs without licensing'] },
-  { title:'Algorithm Quality Standards', icon:'activity', color:'#60a5fa', items:['Originality is primary signal in 2026 — not just view count','High retention rate = primary recommendation driver','Engagement loops and community interaction boost distribution','Avoid recycled content — unique research angle required per video'] },
-];
+const RISKS = {
+  en: [
+    { title:'Avoid Inauthentic Content Flag', icon:'alert-triangle', color:'#ef4444', items:['30% Modification Rule: at least 30% original thought per video','Stock footage must be "significantly changed" with narrative context','Disclose all synthetically generated realistic content (2026 law)','No "AI-generated spam" or lazy compilations — human-in-the-loop always'] },
+    { title:'Brand Safety & Advertiser Friendliness', icon:'shield-check', color:'#10b981', items:['No incendiary financial claims or "get-rich-quick" promises','Mandatory fact-checking phase in script SOP for tax/investment topics','Enable 2FA on all accounts — compromised accounts = permanent ban','Maintain compliance with regulated investment product disclosures'] },
+    { title:'Copyright & Content ID', icon:'copyright', color:'#fbbf24', items:['Only royalty-free music and footage (Artgrid, Storyblocks)','Transformative use: add commentary/educational value to third-party clips','2026 Content ID system is highly sophisticated — zero tolerance approach','Never reproduce third-party charts/graphs without licensing'] },
+    { title:'Algorithm Quality Standards', icon:'activity', color:'#60a5fa', items:['Originality is primary signal in 2026 — not just view count','High retention rate = primary recommendation driver','Engagement loops and community interaction boost distribution','Avoid recycled content — unique research angle required per video'] }
+  ],
+  fr: [
+    { title:'Éviter le Signalement de Contenu Inauthentique', icon:'alert-triangle', color:'#ef4444', items:['Règle des 30% : au moins 30% de pensée originale par vidéo','Les séquences stock doivent être "significativement modifiées" avec un contexte narratif','Divulguer tout contenu réaliste généré synthétiquement (loi 2026)','Pas de "spam généré par IA" ou de compilations paresseuses — intervention humaine toujours'] },
+    { title:'Sécurité de Marque & Compatibilité Annonceurs', icon:'shield-check', color:'#10b981', items:['Pas de promesses financières incendiaires ou "d\'enrichissement rapide"','Phase de vérification des faits obligatoire dans le SOP de script','Activer la 2FA sur tous les comptes — comptes compromis = bannissement permanent','Maintenir la conformité avec les divulgations sur les produits d\'investissement réglementés'] },
+    { title:'Droits d\'Auteur & Content ID', icon:'copyright', color:'#fbbf24', items:['Musique et séquences libres de droits uniquement (Artgrid, Storyblocks)','Usage transformatif : ajouter du commentaire/valeur éducative aux clips tiers','Système Content ID 2026 très sophistiqué — approche zéro tolérance','Ne jamais reproduire des graphiques tiers sans licence'] },
+    { title:'Standards de Qualité Algorithmique', icon:'activity', color:'#60a5fa', items:['L\'originalité est le signal principal en 2026 — pas seulement le nombre de vues','Taux de rétention élevé = principal moteur de recommandation','Boucles d\'engagement et interaction communautaire boostent la distribution','Éviter le contenu recyclé — angle de recherche unique requis par vidéo'] }
+  ],
+  ar: [
+    { title:'تجنب علامة المحتوى غير الأصيل', icon:'alert-triangle', color:'#ef4444', items:['قاعدة 30%: على الأقل 30% فكر أصيل في كل فيديو','يجب أن تكون لقطات الأرشيف "محوّلة بشكل كبير" مع سياق سردي','الإفصاح عن جميع المحتوى الواقعي المُنشأ اصطناعياً (قانون 2026)','لا للـ"سبام المُنشأ بالذكاء الاصطناعي" أو التجميعات الكسولة — تدخل بشري دائماً'] },
+    { title:'سلامة العلامة التجارية وملاءمة المعلنين', icon:'shield-check', color:'#10b981', items:['لا ادعاءات مالية مشتعلة أو وعود "الثراء السريع"','مرحلة التحقق من الحقائق إلزامية في SOP السكريبت','تفعيل 2FA على جميع الحسابات — الحسابات المخترقة = حظر دائم','الحفاظ على الامتثال لإفصاحات المنتجات الاستثمارية المنظّمة'] },
+    { title:'حقوق الطبع والنشر وContent ID', icon:'copyright', color:'#fbbf24', items:['موسيقى ولقطات مرخصة فقط (Artgrid, Storyblocks)','الاستخدام التحويلي: أضف تعليقاً/قيمة تعليمية لمقاطع الأطراف الثالثة','نظام Content ID 2026 متطور للغاية — نهج التسامح الصفري','لا تعيد نشر رسوم بيانية أطراف ثالثة بدون ترخيص'] },
+    { title:'معايير جودة الخوارزمية', icon:'activity', color:'#60a5fa', items:['الأصالة هي الإشارة الأساسية في 2026 — ليس فقط عدد المشاهدات','معدل احتفاظ مرتفع = المحرك الأساسي للتوصية','حلقات التفاعل والتواصل المجتمعي تعزز التوزيع','تجنب المحتوى المعاد تدويره — زاوية بحث فريدة مطلوبة لكل فيديو'] }
+  ]
+};
 
 // ─── SUPABASE HELPERS ─────────────────────────────────────────────────────────
 function setSyncing(active) {
@@ -466,23 +735,19 @@ function showBanner(msg, type) {
   if (!b) return;
   b.style.display = 'block';
   if (type === 'error') {
-    b.style.background = '#2d1515'; b.style.color = '#ef4444'; b.style.borderBottom = '1px solid #7f1d1d';
+    b.style.background = '#2d1515'; b.style.color = '#ef4444'; b.style.border = '1px solid #7f1d1d';
     b.textContent = '⚠️ ' + msg;
-  } else if (type === 'ok') {
-    b.style.background = '#0f2d1a'; b.style.color = '#34d399'; b.style.borderBottom = '1px solid #065f46';
+  } else {
+    b.style.background = '#0f2d1a'; b.style.color = '#34d399'; b.style.border = '1px solid #065f46';
     b.textContent = '● ' + msg;
     setTimeout(() => { b.style.display = 'none'; }, 3000);
   }
-  // shift header down so banner doesn't overlap
-  document.querySelector('header').style.top = '34px';
-  document.querySelector('aside').style.top = 'calc(3.5rem + 34px)';
 }
 
 async function loadTaskState() {
   const { data, error } = await db.from('task_progress').select('task_id, completed');
   if (error) {
-    console.error('Supabase load error:', error);
-    showBanner('Cannot reach database. Did you run the SQL setup in Supabase? (check console for details)', 'error');
+    showBanner('Cannot reach database. Run the SQL setup in Supabase first. (' + error.message + ')', 'error');
     return;
   }
   taskState = {};
@@ -495,41 +760,30 @@ async function saveTaskState(taskId, completed) {
     { task_id: taskId, completed, updated_at: new Date().toISOString() },
     { onConflict: 'task_id' }
   );
-  if (error) {
-    console.error('Supabase save error:', error);
-    showBanner('Save failed: ' + error.message, 'error');
-  }
+  if (error) showBanner('Save failed: ' + error.message, 'error');
   setSyncing(false);
 }
 
 function subscribeToChanges() {
-  const channel = db.channel('task_progress_realtime')
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'task_progress' },
-      payload => {
-        const row = payload.new || payload.old;
-        if (!row || !row.task_id) return;
-        const { task_id, completed } = row;
-        taskState[task_id] = completed;
-        const checkbox = document.getElementById(task_id);
-        if (checkbox && checkbox.checked !== completed) {
-          checkbox.checked = completed;
-          const label = document.querySelector(`label[for="${task_id}"]`);
-          if (label) {
-            label.style.textDecoration = completed ? 'line-through' : 'none';
-            label.style.color = completed ? '#4b5563' : '#d1d5db';
-          }
+  db.channel('task_progress_realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'task_progress' }, payload => {
+      const row = payload.new || payload.old;
+      if (!row || !row.task_id) return;
+      taskState[row.task_id] = row.completed;
+      const checkbox = document.getElementById(row.task_id);
+      if (checkbox && checkbox.checked !== row.completed) {
+        checkbox.checked = row.completed;
+        const label = document.querySelector(`label[for="${row.task_id}"]`);
+        if (label) {
+          label.style.textDecoration = row.completed ? 'line-through' : 'none';
+          label.style.color = row.completed ? '#4b5563' : '#d1d5db';
         }
-        updateProgress();
       }
-    )
+      updateProgress();
+    })
     .subscribe(status => {
-      console.log('Realtime status:', status);
-      if (status === 'SUBSCRIBED') {
-        showBanner('Live sync connected — changes appear instantly for all users', 'ok');
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        showBanner('Live sync failed (' + status + '). Run the SQL setup in Supabase to enable realtime.', 'error');
-      }
+      if (status === 'SUBSCRIBED') showBanner('Live sync connected — all changes are shared instantly', 'ok');
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') showBanner('Live sync failed (' + status + '). Check Supabase realtime setup.', 'error');
     });
 }
 
@@ -538,7 +792,7 @@ function renderTasks(phase, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = '';
-  TASKS[phase].forEach(task => {
+  (TASKS[lang][phase] || []).forEach(task => {
     const checked = !!taskState[task.id];
     const div = document.createElement('div');
     div.className = 'task-item flex items-start gap-3 p-3 rounded-xl';
@@ -546,7 +800,7 @@ function renderTasks(phase, containerId) {
     div.innerHTML = `
       <input type="checkbox" id="${task.id}" ${checked ? 'checked' : ''} onchange="toggleTask('${task.id}', this.checked)">
       <div class="flex-1">
-        <label for="${task.id}" class="text-sm cursor-pointer" style="color:${checked ? '#4b5563' : '#d1d5db'};text-decoration:${checked ? 'line-through' : 'none'};">${task.text}</label>
+        <label for="${task.id}" class="text-sm cursor-pointer" style="color:${checked?'#4b5563':'#d1d5db'};text-decoration:${checked?'line-through':'none'};">${task.text}</label>
         ${task.tip ? `<p class="text-xs mt-1" style="color:#6b7280;">💡 ${task.tip}</p>` : ''}
       </div>`;
     container.appendChild(div);
@@ -557,7 +811,7 @@ function renderToolCards() {
   const container = document.getElementById('tool-cards-container');
   if (!container) return;
   container.innerHTML = '';
-  TOOLS.forEach(tool => {
+  (TOOLS[lang] || TOOLS.en).forEach(tool => {
     const div = document.createElement('div');
     div.className = 'tool-card rounded-xl p-4 cursor-pointer';
     div.style.cssText = 'background:#0f1812;';
@@ -577,14 +831,23 @@ function renderToolCards() {
       </div>`;
     container.appendChild(div);
   });
-  lucide.createIcons();
+}
+
+function renderNicheMetrics() {
+  const t = T[lang];
+  document.getElementById('niche-metrics').innerHTML = `
+    <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;"><p class="text-xs mb-1" style="color:#6b7280;">${t.topCpm}</p><p class="text-xl font-semibold" style="color:#10b981;">$50</p><p class="text-xs" style="color:#6b7280;">${t.topCpmSub}</p></div>
+    <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;"><p class="text-xs mb-1" style="color:#6b7280;">${t.fastGrowth}</p><p class="text-xl font-semibold" style="color:#10b981;">19x</p><p class="text-xs" style="color:#6b7280;">${t.fastGrowthSub}</p></div>
+    <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;"><p class="text-xs mb-1" style="color:#6b7280;">${t.bestLead}</p><p class="text-xl font-semibold" style="color:#10b981;">$350</p><p class="text-xs" style="color:#6b7280;">${t.bestLeadSub}</p></div>
+    <div class="rounded-xl p-4" style="background:#0f1812;border:1px solid #1e2d23;"><p class="text-xs mb-1" style="color:#6b7280;">${t.creatorEcon}</p><p class="text-xl font-semibold" style="color:#10b981;">$480B</p><p class="text-xs" style="color:#6b7280;">${t.creatorEconSub}</p></div>`;
 }
 
 function renderNicheCards() {
   const container = document.getElementById('niche-cards-container');
   if (!container) return;
   container.innerHTML = '';
-  NICHES.forEach((n, i) => {
+  const t = T[lang];
+  (NICHES[lang] || NICHES.en).forEach((n, i) => {
     const div = document.createElement('div');
     div.className = 'niche-card rounded-xl p-4';
     div.style.cssText = 'background:#0f1812;';
@@ -593,31 +856,29 @@ function renderNicheCards() {
         <div>
           <div class="flex items-center gap-2 mb-1">
             <span class="text-sm font-medium" style="color:#e2e8f0;">${n.name}</span>
-            ${i === 0 ? '<span class="badge badge-green">Top CPM</span>' : ''}
+            ${i===0 ? `<span class="badge badge-green">${t.nicheLabels.topCpmBadge}</span>` : ''}
           </div>
           <p class="text-xs" style="color:#6b7280;">${n.desc}</p>
         </div>
       </div>
       <div class="grid grid-cols-3 gap-3 mt-3 pt-3" style="border-top:1px solid #1e2d23;">
-        <div><p class="text-xs" style="color:#6b7280;">Est. CPM</p><p class="text-sm font-semibold" style="color:#10b981;">${n.cpm}</p></div>
-        <div><p class="text-xs" style="color:#6b7280;">Growth</p><p class="text-sm font-semibold" style="color:#34d399;">${n.growth}</p></div>
-        <div><p class="text-xs" style="color:#6b7280;">Revenue Driver</p><p class="text-sm font-semibold" style="color:#e2e8f0;">${n.driver}</p></div>
+        <div><p class="text-xs" style="color:#6b7280;">${t.nicheLabels.cpm}</p><p class="text-sm font-semibold" style="color:#10b981;">${n.cpm}</p></div>
+        <div><p class="text-xs" style="color:#6b7280;">${t.nicheLabels.growth}</p><p class="text-sm font-semibold" style="color:#34d399;">${n.growth}</p></div>
+        <div><p class="text-xs" style="color:#6b7280;">${t.nicheLabels.driver}</p><p class="text-sm font-semibold" style="color:#e2e8f0;">${n.driver}</p></div>
       </div>`;
     container.appendChild(div);
   });
 }
 
 function renderCompTable() {
+  const t = T[lang];
+  document.getElementById('comp-thead').innerHTML = `<tr style="background:#0f1812;border-bottom:1px solid #1e2d23;">${t.compHeaders.map((h,i) => `<th class="text-left p-3 text-xs font-medium${i===2?' hidden sm:table-cell':''}" style="color:#6b7280;">${h}</th>`).join('')}</tr>`;
   const tbody = document.getElementById('comp-table');
-  if (!tbody) return;
+  tbody.innerHTML = '';
   COMPETITORS.forEach((c, i) => {
     const tr = document.createElement('tr');
-    tr.style.cssText = 'border-bottom:1px solid #1e2d23;' + (i % 2 === 0 ? 'background:#0a0f0d;' : 'background:#0f1812;');
-    tr.innerHTML = `
-      <td class="p-3 text-sm font-medium" style="color:#e2e8f0;">${c.name}</td>
-      <td class="p-3 text-xs" style="color:#9ca3af;">${c.strategy}</td>
-      <td class="p-3 text-xs hidden sm:table-cell" style="color:#9ca3af;">${c.hook}</td>
-      <td class="p-3 text-xs font-medium" style="color:#10b981;">${c.rev}</td>`;
+    tr.style.cssText = 'border-bottom:1px solid #1e2d23;' + (i%2===0?'background:#0a0f0d;':'background:#0f1812;');
+    tr.innerHTML = `<td class="p-3 text-sm font-medium" style="color:#e2e8f0;">${c.name}</td><td class="p-3 text-xs" style="color:#9ca3af;">${c.strategy}</td><td class="p-3 text-xs hidden sm:table-cell" style="color:#9ca3af;">${c.hook}</td><td class="p-3 text-xs font-medium" style="color:#10b981;">${c.rev}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -625,26 +886,26 @@ function renderCompTable() {
 function renderMonetizeCards() {
   const container = document.getElementById('monetize-cards');
   if (!container) return;
-  const icons = ['tv', 'link', 'package', 'star'];
-  MONETIZE.forEach((m, i) => {
+  container.innerHTML = '';
+  (MONETIZE[lang] || MONETIZE.en).forEach(m => {
     const div = document.createElement('div');
     div.className = 'rounded-xl p-4';
     div.style.cssText = 'background:#0f1812;border:1px solid #1e2d23;';
     div.innerHTML = `
       <div class="flex items-center gap-2 mb-3">
-        <div style="background:#1e2d23;border-radius:8px;padding:6px;"><i data-lucide="${icons[i]}" style="width:14px;height:14px;color:#10b981;"></i></div>
+        <div style="background:#1e2d23;border-radius:8px;padding:6px;"><i data-lucide="${m.icon}" style="width:14px;height:14px;color:#10b981;"></i></div>
         <span class="text-sm font-medium" style="color:#e2e8f0;">${m.title}</span>
       </div>
-      <ul class="space-y-1.5">${m.items.map(item => `<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:#10b981;margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
+      <ul class="space-y-1.5">${m.items.map(item=>`<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:#10b981;margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
     container.appendChild(div);
   });
-  lucide.createIcons();
 }
 
 function renderRiskCards() {
   const container = document.getElementById('risk-cards');
   if (!container) return;
-  RISKS.forEach(r => {
+  container.innerHTML = '';
+  (RISKS[lang] || RISKS.en).forEach(r => {
     const div = document.createElement('div');
     div.className = 'rounded-xl p-4';
     div.style.cssText = 'background:#0f1812;border:1px solid #1e2d23;';
@@ -653,88 +914,159 @@ function renderRiskCards() {
         <i data-lucide="${r.icon}" style="width:14px;height:14px;color:${r.color};"></i>
         <span class="text-sm font-medium" style="color:#e2e8f0;">${r.title}</span>
       </div>
-      <ul class="space-y-1.5">${r.items.map(item => `<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:${r.color};margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
+      <ul class="space-y-1.5">${r.items.map(item=>`<li class="text-xs flex items-start gap-2" style="color:#9ca3af;"><span style="color:${r.color};margin-top:2px;">›</span>${item}</li>`).join('')}</ul>`;
     container.appendChild(div);
   });
-  lucide.createIcons();
+}
+
+function renderStaticBoxes() {
+  const t = T[lang];
+  // Tips box
+  document.getElementById('tips-setup-box').innerHTML = `
+    <div class="flex items-center gap-2 mb-2"><i data-lucide="lightbulb" style="width:14px;height:14px;color:#fbbf24;"></i><span class="text-xs font-medium" style="color:#fbbf24;">${t.tipsTitle}</span></div>
+    <ul class="text-sm space-y-1" style="color:#9ca3af;">${t.tips.map(tip=>`<li>→ ${tip}</li>`).join('')}</ul>`;
+  // Retention box
+  document.getElementById('retention-box').innerHTML = `
+    <div class="flex items-center gap-2 mb-3"><i data-lucide="zap" style="width:14px;height:14px;color:#10b981;"></i><span class="text-sm font-medium" style="color:#10b981;">${t.retentionTitle}</span></div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">${t.retention.map(r=>`<div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;"><p class="text-xs font-medium mb-1" style="color:#34d399;">${r.title}</p><p class="text-xs" style="color:#6b7280;">${r.body}</p></div>`).join('')}</div>`;
+  // SOP box
+  document.getElementById('sop-box').innerHTML = `
+    <div class="flex items-center gap-2 mb-3"><i data-lucide="file-text" style="width:14px;height:14px;color:#10b981;"></i><span class="text-sm font-medium" style="color:#10b981;">${t.sopTitle}</span></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${t.sops.map(s=>`<div class="rounded-lg p-3" style="background:#0a0f0d;border:1px solid #1e2d23;"><p class="text-xs font-medium mb-1" style="color:#e2e8f0;">${s.title}</p><p class="text-xs" style="color:#6b7280;">${s.body}</p></div>`).join('')}</div>`;
+  // Revenue box
+  document.getElementById('revenue-box').innerHTML = `
+    <div class="flex items-center gap-2 mb-3"><i data-lucide="calculator" style="width:14px;height:14px;color:#10b981;"></i><span class="text-sm font-medium" style="color:#10b981;">${t.revenueTitle}</span></div>
+    <div class="space-y-2 text-sm" style="color:#9ca3af;">${t.revenueLines.map(l=>`<p>${l}</p>`).join('')}</div>`;
+}
+
+function renderUILabels() {
+  const t = T[lang];
+  document.getElementById('lbl-progress').textContent = t.overall;
+  document.getElementById('lbl-syncing').textContent = t.syncing;
+  document.getElementById('lbl-edition').textContent = t.edition;
+  document.getElementById('lbl-phases').textContent = t.phases;
+  document.getElementById('lbl-resources').textContent = t.resources;
+  document.getElementById('btn-reset').textContent = t.reset;
+  document.getElementById('lbl-resource-hub').textContent = t.resourceHub;
+  document.getElementById('lbl-competitor').textContent = t.competitorTitle;
+  // Nav links
+  document.querySelectorAll('.nav-setup').forEach(el=>el.textContent=t.nav.setup);
+  document.querySelectorAll('.nav-tech').forEach(el=>el.textContent=t.nav.tech);
+  document.querySelectorAll('.nav-growth').forEach(el=>el.textContent=t.nav.growth);
+  document.querySelectorAll('.nav-scale').forEach(el=>el.textContent=t.nav.scale);
+  document.querySelectorAll('.nav-niches').forEach(el=>el.textContent=t.nav.niches);
+  document.querySelectorAll('.nav-monetize').forEach(el=>el.textContent=t.nav.monetize);
+  document.querySelectorAll('.nav-risk').forEach(el=>el.textContent=t.nav.risk);
+  // Section titles & descs
+  ['setup','tech','growth','scale','niches','monetize','risk'].forEach(s => {
+    const te = document.getElementById('title-'+s); if(te) te.textContent = t.titles[s];
+    const de = document.getElementById('desc-'+s); if(de) de.textContent = t.descs[s];
+    const ba = document.getElementById('badge-'+s); if(ba && t.badges[s]) ba.textContent = t.badges[s];
+    const pl = document.getElementById('prog-lbl-'+s); if(pl && t.progLbl[s]) pl.textContent = t.progLbl[s];
+  });
 }
 
 // ─── TASK LOGIC ───────────────────────────────────────────────────────────────
 function toggleTask(id, checked) {
   taskState[id] = checked;
   const label = document.querySelector(`label[for="${id}"]`);
-  if (label) {
-    label.style.textDecoration = checked ? 'line-through' : 'none';
-    label.style.color = checked ? '#4b5563' : '#d1d5db';
-  }
+  if (label) { label.style.textDecoration = checked?'line-through':'none'; label.style.color = checked?'#4b5563':'#d1d5db'; }
   updateProgress();
   saveTaskState(id, checked);
 }
 
 function updateProgress() {
-  const phases = ['setup', 'tech', 'growth', 'scale'];
+  const t = T[lang];
+  const phases = ['setup','tech','growth','scale'];
   let totalDone = 0, totalAll = 0;
   phases.forEach(p => {
-    const tasks = TASKS[p];
+    const tasks = TASKS[lang][p] || [];
     const done = tasks.filter(t => !!taskState[t.id]).length;
-    totalDone += done;
-    totalAll += tasks.length;
-    const pct = tasks.length > 0 ? Math.round(done / tasks.length * 100) : 0;
-    const bar = document.getElementById('bar-' + p);
-    const prog = document.getElementById('prog-' + p);
-    if (bar) bar.style.width = pct + '%';
-    if (prog) prog.textContent = pct + '%';
+    totalDone += done; totalAll += tasks.length;
+    const pct = tasks.length > 0 ? Math.round(done/tasks.length*100) : 0;
+    const bar = document.getElementById('bar-'+p); if(bar) bar.style.width = pct+'%';
+    const prog = document.getElementById('prog-'+p); if(prog) prog.textContent = pct+'%';
   });
-  const globalPct = totalAll > 0 ? Math.round(totalDone / totalAll * 100) : 0;
-  const globalBar = document.getElementById('global-bar');
-  const globalPctEl = document.getElementById('global-pct');
-  const tasksDoneEl = document.getElementById('tasks-done');
-  if (globalBar) globalBar.style.width = globalPct + '%';
-  if (globalPctEl) globalPctEl.textContent = globalPct + '%';
-  if (tasksDoneEl) tasksDoneEl.textContent = totalDone + '/' + totalAll + ' tasks';
+  const pct = totalAll > 0 ? Math.round(totalDone/totalAll*100) : 0;
+  const gb = document.getElementById('global-bar'); if(gb) gb.style.width = pct+'%';
+  const gp = document.getElementById('global-pct'); if(gp) gp.textContent = pct+'%';
+  const td = document.getElementById('tasks-done'); if(td) td.textContent = t.tasks(totalDone, totalAll);
 }
 
 async function resetAll() {
   if (!confirm('Reset ALL progress for everyone? This cannot be undone.')) return;
   setSyncing(true);
-  const allIds = Object.values(TASKS).flat().map(t => t.id);
+  const allIds = Object.values(TASKS.en).flat().map(t => t.id);
   await db.from('task_progress').upsert(
     allIds.map(id => ({ task_id: id, completed: false, updated_at: new Date().toISOString() })),
     { onConflict: 'task_id' }
   );
   taskState = {};
   setSyncing(false);
-  init();
+  renderAll();
 }
 
 function showSection(name, el) {
   document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-  const sec = document.getElementById('section-' + name);
-  if (sec) sec.classList.add('active');
+  const sec = document.getElementById('section-'+name); if(sec) sec.classList.add('active');
   if (el) el.classList.add('active');
   const sidebar = document.getElementById('sidebar');
   if (sidebar.classList.contains('open')) sidebar.classList.remove('open');
 }
 
-function init() {
+// ─── LANGUAGE ─────────────────────────────────────────────────────────────────
+function toggleLangMenu() {
+  const m = document.getElementById('lang-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', e => {
+  const w = document.getElementById('lang-wrapper');
+  if (w && !w.contains(e.target)) document.getElementById('lang-menu').style.display = 'none';
+});
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('lang', l);
+  document.getElementById('lang-label').textContent = l === 'en' ? 'ENG' : l.toUpperCase();
+  document.querySelectorAll('.lang-opt').forEach(btn => btn.classList.toggle('active', btn.textContent.toLowerCase().startsWith(l === 'en' ? 'eng' : l)));
+  document.getElementById('lang-menu').style.display = 'none';
+  // RTL for Arabic
+  const isRtl = l === 'ar';
+  document.documentElement.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', l);
+  document.body.className = isRtl ? 'min-h-screen ar' : 'min-h-screen';
+  renderAll();
+}
+
+function renderAll() {
+  renderUILabels();
   renderTasks('setup', 'tasks-setup');
   renderTasks('tech', 'tasks-tech');
   renderTasks('growth', 'tasks-growth');
   renderTasks('scale', 'tasks-scale');
   renderToolCards();
+  renderNicheMetrics();
   renderNicheCards();
   renderCompTable();
   renderMonetizeCards();
   renderRiskCards();
+  renderStaticBoxes();
   updateProgress();
   lucide.createIcons();
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Apply saved language
+  if (lang !== 'en') setLang(lang);
+  else {
+    document.getElementById('lang-label').textContent = 'ENG';
+    document.querySelectorAll('.lang-opt').forEach(btn => btn.classList.toggle('active', btn.textContent === 'ENG'));
+  }
   await loadTaskState();
-  init();
+  renderAll();
   subscribeToChanges();
 });
 </script>
